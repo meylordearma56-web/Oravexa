@@ -1,1 +1,62 @@
-# wiki-pedia
+# WikiPedia
+
+A full-featured Wikipedia-style encyclopedia built with **JavaScript** (Node.js + Express + vanilla frontend).
+
+## Features
+
+- Browse a seeded encyclopedia of sample articles
+- Full-text search with live suggestions
+- Create, edit, and delete articles (Markdown)
+- Wiki links with `[[Article Title]]` syntax
+- Automatic revision history and restore
+- Categories, recent changes, random article
+- Responsive UI with a distinctive reading-first design
+
+## Quick start
+
+```bash
+npm install
+npm start
+```
+
+Open [http://localhost:3000](http://localhost:3000).
+
+On first launch the server seeds sample articles automatically.
+
+### Useful scripts
+
+| Command | Description |
+| --- | --- |
+| `npm start` | Run the wiki server |
+| `npm run dev` | Run with Node `--watch` reload |
+| `npm run seed` | Reset the database and reseed sample articles |
+
+## API overview
+
+| Method | Path | Description |
+| --- | --- | --- |
+| `GET` | `/api/articles` | List articles |
+| `GET` | `/api/articles/:slug` | Get one article (Markdown + HTML) |
+| `POST` | `/api/articles` | Create article |
+| `PUT` | `/api/articles/:slug` | Update article |
+| `DELETE` | `/api/articles/:slug` | Delete article |
+| `GET` | `/api/search?q=` | Search |
+| `GET` | `/api/categories` | List categories |
+| `GET` | `/api/recent` | Recent revisions |
+| `GET` | `/api/articles/random` | Random article |
+
+## Project layout
+
+```
+server/          Express API + JSON data store
+public/          SPA frontend (HTML/CSS/JS)
+data/            Runtime article database (auto-created)
+```
+
+## Editing tips
+
+Articles are written in Markdown. Link between pages with wiki syntax:
+
+```md
+See also [[JavaScript]] and [[Solar System|our solar system]].
+```
