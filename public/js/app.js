@@ -4,8 +4,39 @@ const searchInput = document.getElementById("search-input");
 const searchSuggest = document.getElementById("search-suggest");
 const navToggle = document.getElementById("nav-toggle");
 const mainNav = document.querySelector(".main-nav");
+const themeToggle = document.getElementById("theme-toggle");
 
 let suggestTimer = null;
+
+function getTheme() {
+  return document.documentElement.getAttribute("data-theme") === "dark"
+    ? "dark"
+    : "light";
+}
+
+function syncThemeToggle() {
+  const theme = getTheme();
+  const next = theme === "dark" ? "light" : "dark";
+  themeToggle.setAttribute(
+    "aria-label",
+    next === "dark" ? "Switch to black theme" : "Switch to white theme"
+  );
+  themeToggle.title =
+    next === "dark" ? "Switch to black" : "Switch to white";
+}
+
+function setTheme(theme) {
+  const next = theme === "dark" ? "dark" : "light";
+  document.documentElement.setAttribute("data-theme", next);
+  localStorage.setItem("wikiTheme", next);
+  syncThemeToggle();
+}
+
+themeToggle.addEventListener("click", () => {
+  setTheme(getTheme() === "dark" ? "light" : "dark");
+});
+
+syncThemeToggle();
 
 async function api(path, options = {}) {
   const res = await fetch(path, {
