@@ -1,11 +1,12 @@
 /**
- * Procedural 1,000,000-article catalog.
+ * Procedural ~1,000,000-article catalog (grows weekly).
  * Curated articles stay in wiki.json; the rest are generated on demand
  * so we can expose a million pages without a multi-GB database.
  */
 
 const { CATEGORY_ES, MAIN_CATEGORIES } = require("./generate-articles");
 const { resolveArticleImage, imageAlt, primaryCategory } = require("./article-images");
+const growth = require("./growth");
 
 const TARGET_ARTICLES = 1_000_000;
 const SLUG_PREFIX = "m";
@@ -32,12 +33,19 @@ function buildQuotas(total, categories) {
   return quotas;
 }
 
-const QUOTAS = buildQuotas(TARGET_ARTICLES, CATEGORIES);
+/** Base quotas before weekly growth. */
+const BASE_QUOTAS = buildQuotas(TARGET_ARTICLES, CATEGORIES);
+/** @deprecated use categoryQuota() — kept for callers that expect QUOTAS */
+const QUOTAS = BASE_QUOTAS;
 const CATEGORY_BY_SLUG = Object.fromEntries(
   CATEGORIES.map((name) => [categorySlug(name), name])
 );
 
 const FIXED_CREATED = "2024-01-01T00:00:00.000Z";
+
+function categoryQuota(name) {
+  return (BASE_QUOTAS[name] || 0) + growth.bonusForCategory(name);
+}
 
 function syntheticSlug(category, index) {
   return `${SLUG_PREFIX}-${categorySlug(category)}-${index}`;
@@ -50,7 +58,7 @@ function parseSyntheticSlug(slug) {
   const index = parseInt(match[2], 10);
   const category = CATEGORY_BY_SLUG[catSlug];
   if (!category || !Number.isFinite(index) || index < 1) return null;
-  if (index > QUOTAS[category]) return null;
+  if (index > categoryQuota(category)) return null;
   return { category, index, catSlug };
 }
 
@@ -97,18 +105,20 @@ function buildSyntheticArticle(category, index, { includeContent = false } = {})
   };
 
   if (includeContent) {
+    const catalogSize = totalArticles().toLocaleString("en-US");
+    const catalogSizeEs = totalArticles().toLocaleString("es-ES");
     article.content = `# ${title}
 
 **${title}** is ${blurb}.
 
 ## Overview
 
-This Oravexa article is one of one million encyclopedia entries. It introduces ${title}, why it matters, and how it connects to ${category}.
+This Oravexa article is one of ${catalogSize} encyclopedia entries. It introduces ${title}, why it matters, and how it connects to ${category}.
 
 ## Key points
 
 - ${title} belongs to the ${category} collection on Oravexa.
-- Readers can explore neighboring entries across the million-article catalog.
+- Readers can explore neighboring entries across the growing Oravexa catalog.
 - Editors can expand this page at any time.
 
 ## See also
@@ -121,12 +131,12 @@ Browse more pages in the ${category} category.
 
 ## Descripción general
 
-Este artículo de Oravexa forma parte de un catálogo de un millón de entradas. Presenta ${titleEs}, por qué importa y cómo se conecta con ${catEs}.
+Este artículo de Oravexa forma parte de un catálogo de ${catalogSizeEs} entradas. Presenta ${titleEs}, por qué importa y cómo se conecta con ${catEs}.
 
 ## Puntos clave
 
 - ${titleEs} pertenece a la colección de ${catEs} en Oravexa.
-- Los lectores pueden explorar entradas vecinas en el catálogo de un millón de artículos.
+- Los lectores pueden explorar entradas vecinas en el catálogo creciente de Oravexa.
 - Los editores pueden ampliar esta página en cualquier momento.
 
 ## Véase también
@@ -145,18 +155,14 @@ function getBySlug(slug, { includeContent = false } = {}) {
 }
 
 function totalArticles() {
-  return TARGET_ARTICLES;
-}
-
-function categoryQuota(name) {
-  return QUOTAS[name] || 0;
+  return TARGET_ARTICLES + growth.totalBonus();
 }
 
 function listCategories() {
   return CATEGORIES.map((name) => ({
     name,
     slug: categorySlug(name),
-    count: QUOTAS[name],
+    count: categoryQuota(name),
   })).sort((a, b) => a.name.localeCompare(b.name));
 }
 
@@ -180,7 +186,7 @@ function listCategoryArticles(categoryName, { limit = 50, offset = 0 } = {}) {
     ? categoryName
     : resolveCategoryName(categoryName);
   if (!category) return null;
-  const total = QUOTAS[category];
+  const total = categoryQuota(category);
   const start = Math.max(0, offset);
   const end = Math.min(total, start + Math.max(0, limit));
   const articles = [];
@@ -199,7 +205,7 @@ function listCategoryArticles(categoryName, { limit = 50, offset = 0 } = {}) {
 }
 
 function listArticles({ limit = 50, offset = 0, sort = "title" } = {}) {
-  const total = TARGET_ARTICLES;
+  const total = totalArticles();
   const start = Math.max(0, offset);
   const size = Math.max(0, limit);
   const articles = [];
@@ -208,7 +214,7 @@ function listArticles({ limit = 50, offset = 0, sort = "title" } = {}) {
   let skipped = 0;
   let taken = 0;
   for (const category of CATEGORIES) {
-    const quota = QUOTAS[category];
+    const quota = categoryQuota(category);
     if (skipped + quota <= start) {
       skipped += quota;
       continue;
@@ -230,10 +236,11 @@ function listArticles({ limit = 50, offset = 0, sort = "title" } = {}) {
 }
 
 function randomArticle() {
-  const n = 1 + Math.floor(Math.random() * TARGET_ARTICLES);
+  const total = totalArticles();
+  const n = 1 + Math.floor(Math.random() * total);
   let remaining = n;
   for (const category of CATEGORIES) {
-    const quota = QUOTAS[category];
+    const quota = categoryQuota(category);
     if (remaining <= quota) {
       return buildSyntheticArticle(category, remaining, { includeContent: true });
     }
@@ -259,7 +266,7 @@ function searchArticles(query, limit = 20) {
       ? [resolveCategoryName(maybeCat)].filter(Boolean)
       : CATEGORIES;
     for (const category of categories) {
-      if (index >= 1 && index <= QUOTAS[category]) {
+      if (index >= 1 && index <= categoryQuota(category)) {
         results.push(buildSyntheticArticle(category, index));
         if (results.length >= limit) return results;
       }
@@ -269,7 +276,7 @@ function searchArticles(query, limit = 20) {
   // Match category name alone → first entries
   const asCategory = resolveCategoryName(lower);
   if (asCategory) {
-    for (let i = 1; i <= Math.min(QUOTAS[asCategory], limit); i += 1) {
+    for (let i = 1; i <= Math.min(categoryQuota(asCategory), limit); i += 1) {
       results.push(buildSyntheticArticle(asCategory, i));
     }
     return results.slice(0, limit);
@@ -286,7 +293,7 @@ function searchArticles(query, limit = 20) {
       category.toLowerCase().includes(lower) ||
       String(catEs).toLowerCase().includes(lower)
     ) {
-      for (let i = 1; i <= Math.min(8, QUOTAS[category]); i += 1) {
+      for (let i = 1; i <= Math.min(8, categoryQuota(category)); i += 1) {
         results.push(buildSyntheticArticle(category, i));
         if (results.length >= limit) return results.slice(0, limit);
       }
@@ -316,6 +323,7 @@ module.exports = {
   TARGET_ARTICLES,
   CATEGORIES,
   QUOTAS,
+  BASE_QUOTAS,
   isSyntheticSlug,
   parseSyntheticSlug,
   getBySlug,
