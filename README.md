@@ -25,7 +25,7 @@ npm start
 
 Open [http://localhost:3000](http://localhost:3000).
 
-Open on iOS / Android / PC: [Oravexa](https://drawings-few-rocket-wires.trycloudflare.com)
+Open on iOS / Android / PC: [Oravexa](https://boxed-platform-friends-largely.trycloudflare.com)
 
 On first launch the server seeds sample articles automatically.
 
