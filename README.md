@@ -25,7 +25,23 @@ npm start
 
 Open [http://localhost:3000](http://localhost:3000).
 
-Open on iOS / Android / PC: [Oravexa](https://boxed-platform-friends-largely.trycloudflare.com)
+### Permanent public link (iOS / Android / PC)
+
+Temporary Cloudflare tunnels expire. For a **permanent** Oravexa URL, deploy once to Render (free):
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/meylordearma56-web/Oravexa)
+
+After deploy, Oravexa stays online at:
+
+**https://oravexa.onrender.com**
+
+(Free tier may sleep after idle time; the first visit can take ~30–60s to wake.)
+
+### Temporary cloud session link
+
+While developing in a cloud agent session you may also use a short-lived tunnel (changes when restarted):
+
+Open on iOS / Android / PC: [Oravexa](https://null-feeding-connector-chem.trycloudflare.com)
 
 On first launch the server seeds sample articles automatically.
 

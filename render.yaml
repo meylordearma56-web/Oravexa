@@ -1,0 +1,20 @@
+# Permanent free hosting on Render for Oravexa.
+# After you connect this repo once, the live URL stays:
+# https://oravexa.onrender.com
+
+services:
+  - type: web
+    name: oravexa
+    runtime: node
+    plan: free
+    region: oregon
+    branch: main
+    buildCommand: npm install --omit=dev
+    startCommand: npm start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: ORAVEXA_OWNER_CODE
+        sync: false
