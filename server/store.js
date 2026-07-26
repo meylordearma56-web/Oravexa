@@ -456,6 +456,66 @@ function stats(db) {
   };
 }
 
+function materializeArticle(db, source) {
+  if (!source || !source.slug) throw new Error("Invalid article");
+  if (db.articles[source.slug]) return publicArticle(db.articles[source.slug], true);
+
+  const now = new Date().toISOString();
+  const revisionId = makeId();
+  const categories = normalizeCategories(source.categories || []);
+  const categoriesEs = normalizeCategories(
+    source.categoriesEs || source.categories || []
+  );
+  const content = source.content || "";
+  const contentEs = source.contentEs || content;
+  const title = String(source.title || source.slug).trim();
+  const article = {
+    slug: source.slug,
+    title,
+    titleEs: String(source.titleEs || title).trim(),
+    content,
+    contentEs,
+    summary: source.summary || extractSummary(content),
+    summaryEs: source.summaryEs || extractSummary(contentEs),
+    categories,
+    categoriesEs,
+    author: String(source.author || "Oravexa").trim() || "Oravexa",
+    image: resolveArticleImage({
+      slug: source.slug,
+      title,
+      categories,
+      image: source.image,
+    }),
+    imageAlt:
+      source.imageAlt || imageAlt(title, primaryCategory(categories)),
+    createdAt: source.createdAt || now,
+    updatedAt: now,
+    revisionIds: [revisionId],
+  };
+
+  db.revisions[revisionId] = {
+    id: revisionId,
+    slug: article.slug,
+    title: article.title,
+    titleEs: article.titleEs,
+    content: article.content,
+    contentEs: article.contentEs,
+    categories: article.categories,
+    categoriesEs: article.categoriesEs,
+    author: article.author,
+    image: article.image,
+    imageAlt: article.imageAlt,
+    summary: "Materialized catalog entry",
+    createdAt: now,
+  };
+
+  db.articles[article.slug] = article;
+  upsertCategories(db, article.categories, article.slug);
+  db.meta.articleCount = Object.keys(db.articles).length;
+  save(db);
+  return publicArticle(article, true);
+}
+
 function normalizeCategories(categories) {
   if (!Array.isArray(categories)) {
     if (typeof categories === "string") {
@@ -486,5 +546,6 @@ module.exports = {
   recentChanges,
   stats,
   ensureArticleImages,
+  materializeArticle,
   DB_PATH,
 };

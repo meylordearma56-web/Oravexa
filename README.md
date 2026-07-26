@@ -4,7 +4,7 @@ A full-featured encyclopedia built with **JavaScript** (Node.js + Express + vani
 
 ## Features
 
-- Browse a seeded encyclopedia with **100+ articles in each main category**
+- Browse a **1,000,000-article** encyclopedia across every main category
 - Full bilingual content (English / Spanish) with a language toggle
 - Sign in / create account with persistent sessions (auto login on return)
 - Full-text search with live suggestions

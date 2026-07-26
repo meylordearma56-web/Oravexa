@@ -5,6 +5,7 @@ const { marked } = require("marked");
 const sanitizeHtml = require("sanitize-html");
 const store = require("./store");
 const auth = require("./auth");
+const catalog = require("./mega-catalog");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -142,7 +143,13 @@ app.get("/api/owner/presence", (req, res) => {
 
 app.get("/api/stats", (_req, res) => {
   const db = store.load();
-  res.json(store.stats(db));
+  const base = store.stats(db);
+  res.json({
+    ...base,
+    articles: catalog.totalArticles(),
+    curatedArticles: base.articles,
+    catalogArticles: catalog.totalArticles(),
+  });
 });
 
 app.get("/api/articles", (req, res) => {
@@ -150,13 +157,56 @@ app.get("/api/articles", (req, res) => {
   const limit = Math.min(parseInt(req.query.limit, 10) || 50, 5000);
   const offset = parseInt(req.query.offset, 10) || 0;
   const sort = req.query.sort === "title" ? "title" : "updated";
-  res.json(store.listArticles(db, { limit, offset, sort }));
+  const curated = store.listArticles(db, { limit, offset, sort });
+
+  // Home / recent views: prefer curated updates. Full catalog listing uses title sort.
+  if (sort === "updated") {
+    return res.json({
+      total: catalog.totalArticles(),
+      articles: curated.articles,
+      curatedTotal: curated.total,
+    });
+  }
+
+  if (offset < curated.total) {
+    const curatedSlice = store.listArticles(db, { limit, offset, sort: "title" });
+    const remaining = limit - curatedSlice.articles.length;
+    if (remaining <= 0) {
+      return res.json({
+        total: catalog.totalArticles(),
+        articles: curatedSlice.articles,
+      });
+    }
+    const synthetic = catalog.listArticles({
+      limit: remaining,
+      offset: 0,
+      sort: "title",
+    });
+    return res.json({
+      total: catalog.totalArticles(),
+      articles: [...curatedSlice.articles, ...synthetic.articles],
+    });
+  }
+
+  const synthetic = catalog.listArticles({
+    limit,
+    offset: offset - curated.total,
+    sort: "title",
+  });
+  res.json({
+    total: catalog.totalArticles(),
+    articles: synthetic.articles,
+  });
 });
 
 app.get("/api/articles/random", (_req, res) => {
   const db = store.load();
-  const article = store.randomArticle(db);
-  if (!article) return res.status(404).json({ error: "No articles yet" });
+  // Mostly surface the million-article catalog, with a small chance of curated pages.
+  if (Math.random() < 0.02) {
+    const curated = store.randomArticle(db);
+    if (curated) return res.json(withHtml(curated, db));
+  }
+  const article = catalog.randomArticle();
   res.json(withHtml(article, db));
 });
 
@@ -164,19 +214,53 @@ app.get("/api/search", (req, res) => {
   const db = store.load();
   const q = String(req.query.q || "");
   const limit = Math.min(parseInt(req.query.limit, 10) || 20, 50);
-  res.json({ query: q, results: store.searchArticles(db, q, limit) });
+  const synthetic = catalog.searchArticles(q, limit);
+  const curated = store.searchArticles(db, q, limit);
+  const seen = new Set();
+  const merged = [];
+  for (const article of [...synthetic, ...curated]) {
+    if (!article || seen.has(article.slug)) continue;
+    seen.add(article.slug);
+    merged.push(article);
+    if (merged.length >= limit) break;
+  }
+  res.json({ query: q, results: merged });
 });
 
 app.get("/api/categories", (_req, res) => {
   const db = store.load();
-  res.json(store.listCategories(db));
+  const curated = store.listCategories(db);
+  const mega = catalog.listCategories();
+  const byName = new Map(mega.map((c) => [c.name, { ...c }]));
+  for (const cat of curated) {
+    if (byName.has(cat.name)) {
+      // Keep the million-scale count for main categories.
+      continue;
+    }
+    byName.set(cat.name, cat);
+  }
+  res.json([...byName.values()].sort((a, b) => a.name.localeCompare(b.name)));
 });
 
 app.get("/api/categories/:name", (req, res) => {
   const db = store.load();
+  const limit = Math.min(parseInt(req.query.limit, 10) || 100, 500);
+  const offset = parseInt(req.query.offset, 10) || 0;
+  const mega = catalog.listCategoryArticles(req.params.name, { limit, offset });
+  if (mega) {
+    return res.json(mega);
+  }
   const category = store.getCategory(db, req.params.name);
   if (!category) return res.status(404).json({ error: "Category not found" });
-  res.json(category);
+  const articles = (category.articles || []).slice(offset, offset + limit);
+  res.json({
+    name: category.name,
+    total: category.articles.length,
+    count: category.articles.length,
+    limit,
+    offset,
+    articles,
+  });
 });
 
 app.get("/api/recent", (req, res) => {
@@ -188,26 +272,44 @@ app.get("/api/recent", (req, res) => {
 app.get("/api/articles/:slug", (req, res) => {
   const db = store.load();
   const article = store.getArticle(db, req.params.slug);
-  if (!article) return res.status(404).json({ error: "Article not found" });
-  res.json(withHtml(article, db));
+  if (article) return res.json(withHtml(article, db));
+  const synthetic = catalog.getBySlug(req.params.slug, { includeContent: true });
+  if (!synthetic) return res.status(404).json({ error: "Article not found" });
+  res.json(withHtml(synthetic, db));
 });
 
 app.get("/api/articles/:slug/revisions", (req, res) => {
   const db = store.load();
   const revisions = store.getRevisions(db, req.params.slug);
-  if (!revisions) return res.status(404).json({ error: "Article not found" });
-  res.json(revisions);
+  if (revisions) return res.json(revisions);
+  const synthetic = catalog.getBySlug(req.params.slug, { includeContent: true });
+  if (!synthetic) return res.status(404).json({ error: "Article not found" });
+  res.json([catalog.initialRevision(synthetic)]);
 });
 
 app.get("/api/articles/:slug/revisions/:id", (req, res) => {
   const db = store.load();
   const revision = store.getRevision(db, req.params.slug, req.params.id);
-  if (!revision) return res.status(404).json({ error: "Revision not found" });
+  if (revision) {
+    return res.json({
+      ...revision,
+      html: wikiLinkify(renderMarkdown(revision.content), db),
+      htmlEs: wikiLinkify(
+        renderMarkdown(revision.contentEs || revision.content),
+        db
+      ),
+    });
+  }
+  const synthetic = catalog.getBySlug(req.params.slug, { includeContent: true });
+  if (!synthetic || req.params.id !== `${synthetic.slug}-r0`) {
+    return res.status(404).json({ error: "Revision not found" });
+  }
+  const initial = catalog.initialRevision(synthetic);
   res.json({
-    ...revision,
-    html: wikiLinkify(renderMarkdown(revision.content), db),
+    ...initial,
+    html: wikiLinkify(renderMarkdown(initial.content), db),
     htmlEs: wikiLinkify(
-      renderMarkdown(revision.contentEs || revision.content),
+      renderMarkdown(initial.contentEs || initial.content),
       db
     ),
   });
@@ -268,6 +370,14 @@ app.put("/api/articles/:slug", (req, res) => {
     if (content !== undefined && !String(content).trim()) {
       return res.status(400).json({ error: "Content cannot be empty" });
     }
+
+    if (!db.articles[req.params.slug] && catalog.isSyntheticSlug(req.params.slug)) {
+      const synthetic = catalog.getBySlug(req.params.slug, { includeContent: true });
+      if (synthetic) {
+        store.materializeArticle(db, synthetic);
+      }
+    }
+
     const article = store.updateArticle(db, req.params.slug, {
       title,
       content,
