@@ -4,6 +4,7 @@ const cors = require("cors");
 const { marked } = require("marked");
 const sanitizeHtml = require("sanitize-html");
 const store = require("./store");
+const auth = require("./auth");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -65,12 +66,55 @@ function withHtml(article, db) {
   };
 }
 
-app.use(cors());
+app.use(
+  cors({
+    origin: true,
+    credentials: true,
+  })
+);
 app.use(express.json({ limit: "1mb" }));
+app.use(auth.attachUser);
 app.use(express.static(path.join(__dirname, "..", "public")));
 
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true, service: "oravexa" });
+});
+
+app.get("/api/auth/me", (req, res) => {
+  if (!req.user) {
+    return res.json({ user: null });
+  }
+  res.json({ user: req.user });
+});
+
+app.post("/api/auth/signup", async (req, res) => {
+  try {
+    const { username, password } = req.body || {};
+    const result = await auth.signup(username, password);
+    res.setHeader("Set-Cookie", auth.sessionCookie(result.token));
+    res.status(201).json({ user: result.user });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.post("/api/auth/login", async (req, res) => {
+  try {
+    const { username, password } = req.body || {};
+    const result = await auth.login(username, password);
+    res.setHeader("Set-Cookie", auth.sessionCookie(result.token));
+    res.json({ user: result.user });
+  } catch (err) {
+    const status =
+      err.message === "Invalid username or password" ? 401 : 400;
+    res.status(status).json({ error: err.message });
+  }
+});
+
+app.post("/api/auth/logout", (req, res) => {
+  auth.logout(req.sessionToken);
+  res.setHeader("Set-Cookie", auth.clearSessionCookie());
+  res.json({ ok: true });
 });
 
 app.get("/api/stats", (_req, res) => {
@@ -168,7 +212,7 @@ app.post("/api/articles", (req, res) => {
       title,
       content,
       categories,
-      author,
+      author: req.user?.username || author,
       titleEs,
       contentEs,
       categoriesEs,
@@ -199,7 +243,7 @@ app.put("/api/articles/:slug", (req, res) => {
       title,
       content,
       categories,
-      author,
+      author: req.user?.username || author,
       summary,
       titleEs,
       contentEs,
@@ -215,7 +259,7 @@ app.put("/api/articles/:slug", (req, res) => {
 app.post("/api/articles/:slug/revisions/:id/restore", (req, res) => {
   try {
     const db = store.load();
-    const author = req.body?.author || "Anonymous";
+    const author = req.user?.username || req.body?.author || "Anonymous";
     const article = store.restoreRevision(
       db,
       req.params.slug,

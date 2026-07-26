@@ -348,6 +348,83 @@ a:hover {
   color: var(--forest);
 }
 
+.auth-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-shrink: 0;
+}
+
+.auth-nav a {
+  text-decoration: none;
+  color: var(--ink-soft);
+  font-weight: 500;
+  font-size: 0.92rem;
+}
+
+.auth-nav a:hover {
+  color: var(--forest);
+}
+
+.auth-nav .auth-signup {
+  padding: 0.4rem 0.85rem;
+  font-size: 0.88rem;
+}
+
+.auth-user {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--ink);
+  max-width: 9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.auth-nav .auth-logout {
+  padding: 0.35rem 0.7rem;
+  font-size: 0.85rem;
+}
+
+.auth-panel {
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+.auth-form {
+  max-width: none;
+}
+
+.auth-switch {
+  margin-top: 1.25rem;
+  color: var(--ink-soft);
+}
+
+.auth-switch a {
+  color: var(--forest);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.auth-switch a:hover {
+  text-decoration: underline;
+}
+
+.form-hint {
+  margin: 0;
+  font-size: 0.88rem;
+}
+
+.form-hint a {
+  color: var(--forest);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.form-hint a:hover {
+  text-decoration: underline;
+}
+
 .nav-toggle {
   display: none;
   width: 2.5rem;
@@ -974,6 +1051,18 @@ a:hover {
 
   .main-nav.open {
     display: flex;
+  }
+
+  .auth-nav {
+    gap: 0.45rem;
+  }
+
+  .auth-user {
+    display: none;
+  }
+
+  .auth-nav .auth-signup {
+    padding: 0.35rem 0.65rem;
   }
 
   .home-grid,
