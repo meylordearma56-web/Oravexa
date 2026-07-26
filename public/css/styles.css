@@ -498,6 +498,14 @@ a:hover {
   color: var(--forest-deep);
 }
 
+[data-theme="dark"] .hero .btn-primary {
+  color: #111111;
+}
+
+[data-theme="dark"] .hero .btn-primary:hover {
+  color: #111111;
+}
+
 .hero .btn-secondary {
   background: rgba(255, 255, 255, 0.12);
   color: #fff;
