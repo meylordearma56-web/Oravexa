@@ -107,9 +107,9 @@ const STRINGS = {
     logout: "Log out",
     authChecking: "Checking your session…",
     authOwner: "Owner",
-    authOwnerCode: "Owner code",
+    authOwnerCode: "Owner",
     authOwnerSubmit: "Enter as owner",
-    authOwnerHint: "Owners can sign in with the special access code.",
+    authOwnerHint: "Owners can sign in with the special access password.",
     ownerBadge: "Owner",
   },
   es: {
@@ -221,9 +221,9 @@ const STRINGS = {
     logout: "Cerrar sesión",
     authChecking: "Comprobando tu sesión…",
     authOwner: "Propietario",
-    authOwnerCode: "Código de propietario",
+    authOwnerCode: "Propietario",
     authOwnerSubmit: "Entrar como propietario",
-    authOwnerHint: "Los propietarios pueden entrar con el código de acceso especial.",
+    authOwnerHint: "Los propietarios pueden entrar con la contraseña de acceso especial.",
     ownerBadge: "Propietario",
   },
 };

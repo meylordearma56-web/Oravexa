@@ -5,7 +5,7 @@ const crypto = require("crypto");
 const DATA_DIR = path.join(__dirname, "..", "data");
 const USERS_PATH = path.join(DATA_DIR, "users.json");
 const SESSION_DAYS = 30;
-const OWNER_CODE = process.env.ORAVEXA_OWNER_CODE || "Cursor";
+const OWNER_CODE = process.env.ORAVEXA_OWNER_CODE || "password";
 const OWNER_USERNAME = "owner";
 
 function ensureDataDir() {
@@ -75,10 +75,10 @@ function ensureOwnerUser(data) {
 function loginWithOwnerCode(code) {
   const submitted = String(code || "").trim();
   if (!submitted) {
-    throw new Error("Owner code is required");
+    throw new Error("Owner password is required");
   }
   if (submitted !== OWNER_CODE) {
-    throw new Error("Invalid owner code");
+    throw new Error("Invalid owner password");
   }
 
   const data = load();
