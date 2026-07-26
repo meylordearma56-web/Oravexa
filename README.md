@@ -25,7 +25,7 @@ npm start
 
 Open [http://localhost:3000](http://localhost:3000).
 
-On phones (iOS / Android), use the HTTPS link shown at the bottom of the site footer (also stored in `data/public-url.txt`).
+Open on iOS / Android: [https://italiano-corrections-virtue-cathedral.trycloudflare.com](https://italiano-corrections-virtue-cathedral.trycloudflare.com)
 
 On first launch the server seeds sample articles automatically.
 
