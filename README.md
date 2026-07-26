@@ -25,7 +25,7 @@ npm start
 
 Open [http://localhost:3000](http://localhost:3000).
 
-Open on iOS / Android / PC: [https://usa-statutes-consulting-demonstrate.trycloudflare.com](https://usa-statutes-consulting-demonstrate.trycloudflare.com)
+Open on iOS / Android / PC: [Oravexa](https://drawings-few-rocket-wires.trycloudflare.com)
 
 On first launch the server seeds sample articles automatically.
 
