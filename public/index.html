@@ -216,6 +216,14 @@
             <div class="user-chip" id="user-chip" hidden>
               <span class="user-chip-name" id="user-chip-name"></span>
               <span class="user-chip-badge" id="user-chip-badge" hidden>Owner</span>
+              <button
+                type="button"
+                class="btn btn-ghost presence-btn"
+                id="presence-btn"
+                hidden
+              >
+                Who's online
+              </button>
               <button type="button" class="btn btn-ghost logout-btn" id="logout-btn">
                 Log out
               </button>
@@ -276,8 +284,30 @@
       </footer>
     </div>
 
-    <script src="/js/i18n.js?v=4" defer></script>
-    <script src="/js/auth.js?v=4" defer></script>
-    <script src="/js/app.js?v=4" defer></script>
+    <div
+      class="presence-modal"
+      id="presence-modal"
+      hidden
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="presence-title"
+    >
+      <div class="presence-backdrop" id="presence-backdrop"></div>
+      <div class="presence-panel">
+        <div class="presence-panel-head">
+          <h2 id="presence-title">Who's on the web</h2>
+          <button type="button" class="btn btn-ghost" id="presence-close" aria-label="Close">
+            Close
+          </button>
+        </div>
+        <p class="presence-summary muted" id="presence-summary"></p>
+        <div class="presence-chart" id="presence-chart" aria-live="polite"></div>
+        <ul class="presence-list" id="presence-list"></ul>
+      </div>
+    </div>
+
+    <script src="/js/i18n.js?v=5" defer></script>
+    <script src="/js/auth.js?v=5" defer></script>
+    <script src="/js/app.js?v=5" defer></script>
   </body>
 </html>

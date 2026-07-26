@@ -18,11 +18,20 @@ const userChip = document.getElementById("user-chip");
 const userChipName = document.getElementById("user-chip-name");
 const userChipBadge = document.getElementById("user-chip-badge");
 const logoutBtn = document.getElementById("logout-btn");
+const presenceBtn = document.getElementById("presence-btn");
+const presenceModal = document.getElementById("presence-modal");
+const presenceBackdrop = document.getElementById("presence-backdrop");
+const presenceClose = document.getElementById("presence-close");
+const presenceSummary = document.getElementById("presence-summary");
+const presenceChart = document.getElementById("presence-chart");
+const presenceList = document.getElementById("presence-list");
 const I18n = window.OravexaI18n;
 const Auth = window.OravexaAuth;
 
 let suggestTimer = null;
 let appReady = false;
+let heartbeatTimer = null;
+let presenceRefreshTimer = null;
 
 function t(key, vars) {
   return I18n.t(key, vars);
@@ -98,6 +107,13 @@ function applyAuthChrome() {
   if (ownerSubmit) ownerSubmit.textContent = t("authOwnerSubmit");
   if (logoutBtn) logoutBtn.textContent = t("logout");
   if (userChipBadge) userChipBadge.textContent = t("ownerBadge");
+  if (presenceBtn) presenceBtn.textContent = t("presenceBtn");
+  const presenceTitle = document.getElementById("presence-title");
+  if (presenceTitle) presenceTitle.textContent = t("presenceTitle");
+  if (presenceClose) {
+    presenceClose.textContent = t("presenceClose");
+    presenceClose.setAttribute("aria-label", t("presenceCloseLabel"));
+  }
 }
 
 function applyChrome() {
@@ -149,8 +165,13 @@ function applyChrome() {
       userChipBadge.hidden = Auth.currentUser.role !== "owner";
       userChipBadge.textContent = t("ownerBadge");
     }
+    if (presenceBtn) {
+      presenceBtn.hidden = Auth.currentUser.role !== "owner";
+      presenceBtn.textContent = t("presenceBtn");
+    }
   } else if (userChip) {
     userChip.hidden = true;
+    if (presenceBtn) presenceBtn.hidden = true;
   }
 
   applyAuthChrome();
@@ -184,6 +205,8 @@ function setAuthTab(whichtab) {
 function showAuthScreen() {
   document.body.classList.add("auth-locked");
   document.body.classList.remove("is-authenticated");
+  stopPresenceHeartbeat();
+  closePresenceModal();
   if (authScreen) {
     authScreen.hidden = false;
     authScreen.setAttribute("aria-hidden", "false");
@@ -210,11 +233,129 @@ function enterApp() {
   }
   appReady = true;
   applyChrome();
+  startPresenceHeartbeat();
   if (!location.hash) {
     location.hash = "#/";
   } else {
     router();
   }
+}
+
+function stopPresenceHeartbeat() {
+  if (heartbeatTimer) {
+    clearInterval(heartbeatTimer);
+    heartbeatTimer = null;
+  }
+}
+
+function startPresenceHeartbeat() {
+  stopPresenceHeartbeat();
+  if (!Auth.isLoggedIn()) return;
+
+  const beat = () => {
+    Auth.heartbeat().catch(() => {});
+  };
+  beat();
+  heartbeatTimer = setInterval(beat, 25000);
+}
+
+function formatSeenAgo(iso) {
+  const ms = Date.now() - new Date(iso).getTime();
+  if (!Number.isFinite(ms) || ms < 8000) return t("presenceJustNow");
+  if (ms < 60000) return t("presenceSecondsAgo", { n: Math.floor(ms / 1000) });
+  return t("presenceMinutesAgo", { n: Math.max(1, Math.floor(ms / 60000)) });
+}
+
+function closePresenceModal() {
+  if (presenceRefreshTimer) {
+    clearInterval(presenceRefreshTimer);
+    presenceRefreshTimer = null;
+  }
+  if (presenceModal) {
+    presenceModal.hidden = true;
+    document.body.classList.remove("presence-open");
+  }
+}
+
+async function renderPresenceChart(data) {
+  if (!presenceChart || !presenceList || !presenceSummary) return;
+
+  const total = Math.max(data.onlineCount || 0, 1);
+  const ownersPct = Math.round(((data.owners || 0) / total) * 100);
+  const usersPct = Math.round(((data.users || 0) / total) * 100);
+  const summaryKey =
+    (data.users || 0) === 1 ? "presenceSummaryOne" : "presenceSummary";
+
+  presenceSummary.textContent = t(summaryKey, {
+    count: data.onlineCount || 0,
+    owners: data.owners || 0,
+    users: data.users || 0,
+  });
+
+  presenceChart.innerHTML = `
+    <div class="presence-bars" role="img" aria-label="${escapeHtml(t("presenceTitle"))}">
+      <div class="presence-bar-row">
+        <span class="presence-bar-label">${escapeHtml(t("presenceOwners"))}</span>
+        <div class="presence-bar-track">
+          <div class="presence-bar-fill is-owner" style="width:${ownersPct}%"></div>
+        </div>
+        <span class="presence-bar-count">${data.owners || 0}</span>
+      </div>
+      <div class="presence-bar-row">
+        <span class="presence-bar-label">${escapeHtml(t("presenceUsers"))}</span>
+        <div class="presence-bar-track">
+          <div class="presence-bar-fill is-user" style="width:${usersPct}%"></div>
+        </div>
+        <span class="presence-bar-count">${data.users || 0}</span>
+      </div>
+    </div>
+  `;
+
+  const people = data.online || [];
+  if (!people.length) {
+    presenceList.innerHTML = `<li class="presence-empty">${escapeHtml(t("presenceEmpty"))}</li>`;
+    return;
+  }
+
+  presenceList.innerHTML = people
+    .map((person) => {
+      const name = person.displayName || person.username;
+      const role =
+        person.role === "owner" ? t("ownerBadge") : t("presenceUsers");
+      return `
+        <li class="presence-person ${person.role === "owner" ? "is-owner" : ""}">
+          <span class="presence-person-name">${escapeHtml(name)}</span>
+          <span class="presence-person-role">${escapeHtml(role)}</span>
+          <span class="presence-person-seen">${escapeHtml(formatSeenAgo(person.lastSeenAt))}</span>
+        </li>
+      `;
+    })
+    .join("");
+}
+
+async function openPresenceModal() {
+  if (!presenceModal || Auth.currentUser?.role !== "owner") return;
+
+  presenceModal.hidden = false;
+  document.body.classList.add("presence-open");
+  if (presenceSummary) presenceSummary.textContent = t("presenceLoading");
+  if (presenceChart) presenceChart.innerHTML = "";
+  if (presenceList) presenceList.innerHTML = "";
+
+  const load = async () => {
+    try {
+      const data = await Auth.getPresence();
+      await renderPresenceChart(data);
+    } catch (err) {
+      if (presenceSummary) {
+        presenceSummary.textContent = err.message || t("presenceError");
+      }
+    }
+  };
+
+  await load();
+  if (presenceRefreshTimer) clearInterval(presenceRefreshTimer);
+  presenceRefreshTimer = setInterval(load, 10000);
 }
 
 function onThemeClick() {
@@ -290,8 +431,21 @@ ownerForm?.addEventListener("submit", async (e) => {
 });
 
 logoutBtn?.addEventListener("click", async () => {
+  stopPresenceHeartbeat();
+  closePresenceModal();
   await Auth.logout();
   showAuthScreen();
+});
+
+presenceBtn?.addEventListener("click", () => {
+  openPresenceModal();
+});
+presenceClose?.addEventListener("click", () => closePresenceModal());
+presenceBackdrop?.addEventListener("click", () => closePresenceModal());
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && presenceModal && !presenceModal.hidden) {
+    closePresenceModal();
+  }
 });
 
 async function api(path, options = {}) {
