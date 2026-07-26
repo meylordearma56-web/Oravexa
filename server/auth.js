@@ -1,15 +1,12 @@
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
-const { promisify } = require("util");
-
-const scrypt = promisify(crypto.scrypt);
 
 const DATA_DIR = path.join(__dirname, "..", "data");
-const AUTH_PATH = path.join(DATA_DIR, "auth.json");
-const COOKIE_NAME = "oravexa_session";
+const USERS_PATH = path.join(DATA_DIR, "users.json");
 const SESSION_DAYS = 30;
-const SESSION_MS = SESSION_DAYS * 24 * 60 * 60 * 1000;
+const OWNER_CODE = process.env.ORAVEXA_OWNER_CODE || "Cursor";
+const OWNER_USERNAME = "owner";
 
 function ensureDataDir() {
   if (!fs.existsSync(DATA_DIR)) {
@@ -17,239 +14,241 @@ function ensureDataDir() {
   }
 }
 
-function defaultAuth() {
-  return {
-    users: {},
-    sessions: {},
-  };
+function defaultStore() {
+  return { users: {}, sessions: {} };
 }
 
 function load() {
   ensureDataDir();
-  if (!fs.existsSync(AUTH_PATH)) {
-    const db = defaultAuth();
-    save(db);
-    return db;
+  if (!fs.existsSync(USERS_PATH)) {
+    const data = defaultStore();
+    save(data);
+    return data;
   }
-  const db = JSON.parse(fs.readFileSync(AUTH_PATH, "utf8"));
-  if (!db.users) db.users = {};
-  if (!db.sessions) db.sessions = {};
-  return db;
+  return JSON.parse(fs.readFileSync(USERS_PATH, "utf8"));
 }
 
-function save(db) {
+function save(data) {
   ensureDataDir();
-  const tmp = `${AUTH_PATH}.tmp`;
-  fs.writeFileSync(tmp, JSON.stringify(db));
-  fs.renameSync(tmp, AUTH_PATH);
-}
-
-function publicUser(user) {
-  if (!user) return null;
-  return {
-    id: user.id,
-    username: user.username,
-    createdAt: user.createdAt,
-  };
-}
-
-function parseCookies(header = "") {
-  const out = {};
-  for (const part of String(header).split(";")) {
-    const idx = part.indexOf("=");
-    if (idx === -1) continue;
-    const key = part.slice(0, idx).trim();
-    const value = part.slice(idx + 1).trim();
-    if (key) out[key] = decodeURIComponent(value);
-  }
-  return out;
-}
-
-function sessionCookie(token, maxAgeMs = SESSION_MS) {
-  const parts = [
-    `${COOKIE_NAME}=${encodeURIComponent(token)}`,
-    "Path=/",
-    "HttpOnly",
-    "SameSite=Lax",
-    `Max-Age=${Math.floor(maxAgeMs / 1000)}`,
-  ];
-  if (process.env.NODE_ENV === "production") {
-    parts.push("Secure");
-  }
-  return parts.join("; ");
-}
-
-function clearSessionCookie() {
-  return `${COOKIE_NAME}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`;
-}
-
-async function hashPassword(password, salt = crypto.randomBytes(16).toString("hex")) {
-  const derived = await scrypt(password, salt, 64);
-  return {
-    salt,
-    hash: derived.toString("hex"),
-  };
-}
-
-async function verifyPassword(password, salt, hash) {
-  const derived = await scrypt(password, salt, 64);
-  const left = Buffer.from(derived.toString("hex"), "utf8");
-  const right = Buffer.from(hash, "utf8");
-  if (left.length !== right.length) return false;
-  return crypto.timingSafeEqual(left, right);
+  const tmp = `${USERS_PATH}.tmp`;
+  fs.writeFileSync(tmp, JSON.stringify(data));
+  fs.renameSync(tmp, USERS_PATH);
 }
 
 function normalizeUsername(username) {
   return String(username || "")
     .trim()
-    .replace(/\s+/g, " ");
+    .toLowerCase();
 }
 
-function validateCredentials(username, password) {
-  const name = normalizeUsername(username);
-  if (name.length < 3 || name.length > 32) {
-    throw new Error("Username must be 3–32 characters");
-  }
-  if (!/^[a-zA-Z0-9_\- ]+$/.test(name)) {
-    throw new Error(
-      "Username can only use letters, numbers, spaces, hyphens, and underscores"
-    );
-  }
-  const pass = String(password || "");
-  if (pass.length < 6) {
-    throw new Error("Password must be at least 6 characters");
-  }
-  if (pass.length > 128) {
-    throw new Error("Password is too long");
-  }
-  return { username: name, password: pass };
+function publicUser(user) {
+  return {
+    id: user.id,
+    username: user.username,
+    displayName: user.displayName,
+    role: user.role || "user",
+    createdAt: user.createdAt,
+  };
 }
 
-function pruneExpiredSessions(db) {
+function ensureOwnerUser(data) {
+  let user = data.users[OWNER_USERNAME];
+  if (!user) {
+    const { salt, hash } = hashPassword(crypto.randomBytes(24).toString("hex"));
+    user = {
+      id: crypto.randomBytes(8).toString("hex"),
+      username: OWNER_USERNAME,
+      displayName: "Owner",
+      role: "owner",
+      salt,
+      passwordHash: hash,
+      createdAt: new Date().toISOString(),
+    };
+    data.users[OWNER_USERNAME] = user;
+  } else if (user.role !== "owner") {
+    user.role = "owner";
+    user.displayName = user.displayName || "Owner";
+  }
+  return user;
+}
+
+function loginWithOwnerCode(code) {
+  const submitted = String(code || "").trim();
+  if (!submitted) {
+    throw new Error("Owner password is required");
+  }
+  if (submitted !== OWNER_CODE) {
+    throw new Error("Invalid owner password");
+  }
+
+  const data = load();
+  cleanExpiredSessions(data);
+  const user = ensureOwnerUser(data);
+  const session = createSession(data, user.id);
+  save(data);
+
+  return {
+    user: publicUser(user),
+    token: session.token,
+    expiresAt: session.expiresAt,
+  };
+}
+
+function hashPassword(password, salt = crypto.randomBytes(16).toString("hex")) {
+  const hash = crypto.scryptSync(password, salt, 64).toString("hex");
+  return { salt, hash };
+}
+
+function verifyPassword(password, salt, expectedHash) {
+  const { hash } = hashPassword(password, salt);
+  const a = Buffer.from(hash, "hex");
+  const b = Buffer.from(expectedHash, "hex");
+  if (a.length !== b.length) return false;
+  return crypto.timingSafeEqual(a, b);
+}
+
+function cleanExpiredSessions(data) {
   const now = Date.now();
   let changed = false;
-  for (const [token, session] of Object.entries(db.sessions)) {
+  for (const [token, session] of Object.entries(data.sessions)) {
     if (new Date(session.expiresAt).getTime() <= now) {
-      delete db.sessions[token];
+      delete data.sessions[token];
       changed = true;
     }
   }
   return changed;
 }
 
-function createSession(db, user) {
-  pruneExpiredSessions(db);
+function createSession(data, userId) {
   const token = crypto.randomBytes(32).toString("hex");
-  const now = new Date();
-  db.sessions[token] = {
+  const expiresAt = new Date(
+    Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000
+  ).toISOString();
+  data.sessions[token] = {
     token,
-    userId: user.id,
-    username: user.username,
-    createdAt: now.toISOString(),
-    expiresAt: new Date(now.getTime() + SESSION_MS).toISOString(),
+    userId,
+    createdAt: new Date().toISOString(),
+    expiresAt,
   };
-  save(db);
-  return token;
+  return data.sessions[token];
 }
 
-function getSessionUser(db, token) {
-  if (!token) return null;
-  pruneExpiredSessions(db);
-  const session = db.sessions[token];
-  if (!session) return null;
-  if (new Date(session.expiresAt).getTime() <= Date.now()) {
-    delete db.sessions[token];
-    save(db);
-    return null;
+function register({ username, password, displayName }) {
+  const data = load();
+  cleanExpiredSessions(data);
+
+  const key = normalizeUsername(username);
+  if (!key || key.length < 3) {
+    throw new Error("Username must be at least 3 characters");
   }
-  const user =
-    Object.values(db.users).find((u) => u.id === session.userId) || null;
-  return publicUser(user);
-}
-
-function destroySession(db, token) {
-  if (token && db.sessions[token]) {
-    delete db.sessions[token];
-    save(db);
+  if (!/^[a-z0-9._-]+$/i.test(key)) {
+    throw new Error("Username can only use letters, numbers, . _ -");
   }
-}
-
-async function signup(username, password) {
-  const creds = validateCredentials(username, password);
-  const db = load();
-  const key = creds.username.toLowerCase();
-  if (db.users[key]) {
+  if (!password || String(password).length < 6) {
+    throw new Error("Password must be at least 6 characters");
+  }
+  if (data.users[key]) {
     throw new Error("That username is already taken");
   }
-  const { salt, hash } = await hashPassword(creds.password);
+
+  const { salt, hash } = hashPassword(String(password));
+  const now = new Date().toISOString();
   const user = {
     id: crypto.randomBytes(8).toString("hex"),
-    username: creds.username,
-    passwordSalt: salt,
+    username: key,
+    displayName: String(displayName || username).trim() || key,
+    role: "user",
+    salt,
     passwordHash: hash,
-    createdAt: new Date().toISOString(),
+    createdAt: now,
   };
-  db.users[key] = user;
-  const token = createSession(db, user);
-  return { user: publicUser(user), token };
+
+  data.users[key] = user;
+  const session = createSession(data, user.id);
+  save(data);
+
+  return { user: publicUser(user), token: session.token, expiresAt: session.expiresAt };
 }
 
-async function login(username, password) {
-  const creds = validateCredentials(username, password);
-  const db = load();
-  const user = db.users[creds.username.toLowerCase()];
-  if (!user) {
+function login({ username, password }) {
+  const data = load();
+  cleanExpiredSessions(data);
+
+  const key = normalizeUsername(username);
+  const user = data.users[key];
+  if (!user || !verifyPassword(String(password || ""), user.salt, user.passwordHash)) {
     throw new Error("Invalid username or password");
   }
-  const ok = await verifyPassword(
-    creds.password,
-    user.passwordSalt,
-    user.passwordHash
-  );
-  if (!ok) {
-    throw new Error("Invalid username or password");
+
+  const session = createSession(data, user.id);
+  save(data);
+  return { user: publicUser(user), token: session.token, expiresAt: session.expiresAt };
+}
+
+function findUserById(data, userId) {
+  return Object.values(data.users).find((u) => u.id === userId) || null;
+}
+
+function getSessionUser(token) {
+  if (!token) return null;
+  const data = load();
+  if (cleanExpiredSessions(data)) save(data);
+
+  const session = data.sessions[token];
+  if (!session) return null;
+  if (new Date(session.expiresAt).getTime() <= Date.now()) {
+    delete data.sessions[token];
+    save(data);
+    return null;
   }
-  const token = createSession(db, user);
-  return { user: publicUser(user), token };
+
+  const user = findUserById(data, session.userId);
+  if (!user) return null;
+
+  // Sliding expiry: extend session when used
+  session.expiresAt = new Date(
+    Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000
+  ).toISOString();
+  save(data);
+
+  return {
+    user: publicUser(user),
+    token,
+    expiresAt: session.expiresAt,
+  };
 }
 
 function logout(token) {
-  const db = load();
-  destroySession(db, token);
-}
-
-function me(token) {
-  const db = load();
-  return getSessionUser(db, token);
-}
-
-function getTokenFromRequest(req) {
-  const cookies = parseCookies(req.headers.cookie);
-  return cookies[COOKIE_NAME] || null;
-}
-
-function attachUser(req, _res, next) {
-  try {
-    const token = getTokenFromRequest(req);
-    req.sessionToken = token;
-    req.user = me(token);
-  } catch {
-    req.sessionToken = null;
-    req.user = null;
+  if (!token) return true;
+  const data = load();
+  if (data.sessions[token]) {
+    delete data.sessions[token];
+    save(data);
   }
-  next();
+  return true;
+}
+
+function extractToken(req) {
+  const header = req.headers.authorization || "";
+  if (header.startsWith("Bearer ")) {
+    return header.slice(7).trim();
+  }
+  if (req.headers["x-session-token"]) {
+    return String(req.headers["x-session-token"]).trim();
+  }
+  if (req.body && req.body.token) {
+    return String(req.body.token).trim();
+  }
+  return null;
 }
 
 module.exports = {
-  COOKIE_NAME,
-  SESSION_MS,
-  signup,
+  register,
   login,
+  loginWithOwnerCode,
+  getSessionUser,
   logout,
-  me,
-  getTokenFromRequest,
-  attachUser,
-  sessionCookie,
-  clearSessionCookie,
-  AUTH_PATH,
+  extractToken,
+  USERS_PATH,
+  OWNER_CODE,
 };

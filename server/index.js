@@ -66,54 +66,56 @@ function withHtml(article, db) {
   };
 }
 
-app.use(
-  cors({
-    origin: true,
-    credentials: true,
-  })
-);
+app.use(cors());
 app.use(express.json({ limit: "1mb" }));
-app.use(auth.attachUser);
 app.use(express.static(path.join(__dirname, "..", "public")));
 
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true, service: "oravexa" });
 });
 
-app.get("/api/auth/me", (req, res) => {
-  if (!req.user) {
-    return res.json({ user: null });
-  }
-  res.json({ user: req.user });
-});
-
-app.post("/api/auth/signup", async (req, res) => {
+app.post("/api/auth/register", (req, res) => {
   try {
-    const { username, password } = req.body || {};
-    const result = await auth.signup(username, password);
-    res.setHeader("Set-Cookie", auth.sessionCookie(result.token));
-    res.status(201).json({ user: result.user });
+    const { username, password, displayName } = req.body || {};
+    const result = auth.register({ username, password, displayName });
+    res.status(201).json(result);
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
 });
 
-app.post("/api/auth/login", async (req, res) => {
+app.post("/api/auth/login", (req, res) => {
   try {
     const { username, password } = req.body || {};
-    const result = await auth.login(username, password);
-    res.setHeader("Set-Cookie", auth.sessionCookie(result.token));
-    res.json({ user: result.user });
+    const result = auth.login({ username, password });
+    res.json(result);
   } catch (err) {
-    const status =
-      err.message === "Invalid username or password" ? 401 : 400;
-    res.status(status).json({ error: err.message });
+    res.status(401).json({ error: err.message });
   }
 });
 
+app.post("/api/auth/owner", (req, res) => {
+  try {
+    const { code } = req.body || {};
+    const result = auth.loginWithOwnerCode(code);
+    res.json(result);
+  } catch (err) {
+    res.status(401).json({ error: err.message });
+  }
+});
+
+app.get("/api/auth/me", (req, res) => {
+  const token = auth.extractToken(req);
+  const session = auth.getSessionUser(token);
+  if (!session) {
+    return res.status(401).json({ error: "Not logged in" });
+  }
+  res.json(session);
+});
+
 app.post("/api/auth/logout", (req, res) => {
-  auth.logout(req.sessionToken);
-  res.setHeader("Set-Cookie", auth.clearSessionCookie());
+  const token = auth.extractToken(req);
+  auth.logout(token);
   res.json({ ok: true });
 });
 
@@ -212,7 +214,7 @@ app.post("/api/articles", (req, res) => {
       title,
       content,
       categories,
-      author: req.user?.username || author,
+      author,
       titleEs,
       contentEs,
       categoriesEs,
@@ -243,7 +245,7 @@ app.put("/api/articles/:slug", (req, res) => {
       title,
       content,
       categories,
-      author: req.user?.username || author,
+      author,
       summary,
       titleEs,
       contentEs,
@@ -259,7 +261,7 @@ app.put("/api/articles/:slug", (req, res) => {
 app.post("/api/articles/:slug/revisions/:id/restore", (req, res) => {
   try {
     const db = store.load();
-    const author = req.user?.username || req.body?.author || "Anonymous";
+    const author = req.body?.author || "Anonymous";
     const article = store.restoreRevision(
       db,
       req.params.slug,
