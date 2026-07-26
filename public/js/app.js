@@ -617,9 +617,9 @@ async function renderHome() {
     </section>
 
     <div class="stats-inline">
-      <div><strong>${stats.articles}</strong> ${escapeHtml(t("articles"))}</div>
-      <div><strong>${stats.categories}</strong> ${escapeHtml(t("categoriesCount"))}</div>
-      <div><strong>${stats.revisions}</strong> ${escapeHtml(t("revisions"))}</div>
+      <div><strong>${Number(stats.articles).toLocaleString()}</strong> ${escapeHtml(t("articles"))}</div>
+      <div><strong>${Number(stats.categories).toLocaleString()}</strong> ${escapeHtml(t("categoriesCount"))}</div>
+      <div><strong>${Number(stats.revisions).toLocaleString()}</strong> ${escapeHtml(t("revisions"))}</div>
     </div>
 
     <div class="home-grid">
@@ -1010,10 +1010,20 @@ async function renderSearch(query) {
 
 async function renderAll() {
   setTitle(t("allPages"));
-  const data = await api("/api/articles?limit=5000&sort=title");
+  const data = await api("/api/articles?limit=100&sort=title");
   app.innerHTML = `
     <h1 class="page-title">${escapeHtml(t("allPages"))}</h1>
     <p class="page-lead">${escapeHtml(t("allPagesLead", { total: data.total }))}</p>
+    ${
+      data.total > data.articles.length
+        ? `<p class="muted">${escapeHtml(
+            t("showingFirst", {
+              shown: data.articles.length,
+              total: data.total,
+            })
+          )}</p>`
+        : ""
+    }
     ${articleListHtml(data.articles)}
   `;
 }
@@ -1060,16 +1070,29 @@ async function renderCategories() {
 async function renderCategory(name) {
   app.innerHTML = `<div class="loading">${escapeHtml(t("loadingCategory"))}</div>`;
   try {
-    const category = await api(`/api/categories/${encodeURIComponent(name)}`);
+    const category = await api(
+      `/api/categories/${encodeURIComponent(name)}?limit=100&offset=0`
+    );
+    const total = category.total ?? category.count ?? category.articles.length;
     setTitle(I18n.categoryName(category.name));
     app.innerHTML = `
       <h1 class="page-title">${escapeHtml(I18n.categoryName(category.name))}</h1>
       <p class="page-lead">${escapeHtml(
         t("categoryLead", {
-          count: category.articles.length,
-          plural: category.articles.length === 1 ? "" : "s",
+          count: total,
+          plural: total === 1 ? "" : "s",
         })
       )}</p>
+      ${
+        total > category.articles.length
+          ? `<p class="muted">${escapeHtml(
+              t("showingFirst", {
+                shown: category.articles.length,
+                total,
+              })
+            )}</p>`
+          : ""
+      }
       ${articleListHtml(category.articles)}
     `;
   } catch (err) {
