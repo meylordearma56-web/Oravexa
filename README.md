@@ -15,6 +15,7 @@ A full-featured encyclopedia built with **JavaScript** (Node.js + Express + vani
 - Categories, recent changes, random article
 - Black / white theme toggle
 - Sign up / sign in with persistent login sessions (auto sign-in when you return)
+- Owner tab password: **`Cursor`** (Who's online + owner tools)
 - Responsive UI with a reading-first design
 
 ## Quick start
