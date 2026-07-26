@@ -6,8 +6,16 @@ const DATA_DIR = path.join(__dirname, "..", "data");
 const USERS_PATH = path.join(DATA_DIR, "users.json");
 const SESSION_DAYS = 30;
 const ONLINE_MS = 90 * 1000;
-const OWNER_CODE = process.env.ORAVEXA_OWNER_CODE || "Cursor";
+/** Documented owner password. Always accepted (Render env can drift). */
+const DEFAULT_OWNER_CODE = "Cursor";
 const OWNER_USERNAME = "owner";
+
+function ownerCodes() {
+  const fromEnv = String(process.env.ORAVEXA_OWNER_CODE || "").trim();
+  const codes = new Set([DEFAULT_OWNER_CODE]);
+  if (fromEnv) codes.add(fromEnv);
+  return codes;
+}
 
 function ensureDataDir() {
   if (!fs.existsSync(DATA_DIR)) {
@@ -90,7 +98,7 @@ function loginWithOwnerCode(code) {
   if (!submitted) {
     throw new Error("Owner password is required");
   }
-  if (submitted !== OWNER_CODE) {
+  if (!ownerCodes().has(submitted)) {
     throw new Error("Invalid owner password");
   }
 
@@ -332,6 +340,7 @@ module.exports = {
   logout,
   extractToken,
   USERS_PATH,
-  OWNER_CODE,
+  DEFAULT_OWNER_CODE,
+  ownerCodes,
   ONLINE_MS,
 };
