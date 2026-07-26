@@ -606,7 +606,17 @@ async function renderHome() {
     <section class="hero" aria-label="Welcome">
       <div class="hero-media" aria-hidden="true"></div>
       <div class="hero-content">
-        <p class="hero-brand">Oravexa</p>
+        <div class="hero-identity">
+          <img
+            class="hero-logo"
+            src="/logo.svg"
+            width="112"
+            height="112"
+            alt=""
+            decoding="async"
+          />
+          <p class="hero-brand">Oravexa</p>
+        </div>
         <h1>${escapeHtml(t("heroHeadline"))}</h1>
         <p>${escapeHtml(t("heroLead"))}</p>
         <div class="hero-actions">
