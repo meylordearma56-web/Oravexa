@@ -64,11 +64,15 @@
 
 html {
   scroll-behavior: smooth;
+  max-width: 100%;
+  overflow-x: clip;
 }
 
 body {
   margin: 0;
   min-height: 100vh;
+  max-width: 100%;
+  overflow-x: clip;
   font-family: var(--font-ui);
   color: var(--ink);
   background:
@@ -1068,19 +1072,26 @@ a:hover {
 
 @media (max-width: 900px) {
   .header-inner {
-    grid-template-columns: 1fr auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     grid-template-areas:
       "brand actions"
       "search search";
+    gap: 0.65rem;
+    padding: 0.65rem 0.75rem;
+    width: 100%;
   }
 
   .brand {
     grid-area: brand;
+    min-width: 0;
   }
 
   .header-actions {
     grid-area: actions;
     justify-self: end;
+    gap: 0.4rem;
+    max-width: 100%;
+    min-width: 0;
   }
 
   .nav-toggle {
@@ -1089,6 +1100,8 @@ a:hover {
 
   .search-form {
     grid-area: search;
+    width: 100%;
+    min-width: 0;
   }
 
   .search-suggest {
@@ -1103,7 +1116,7 @@ a:hover {
     right: 0;
     background: var(--nav-bg);
     border-bottom: 1px solid var(--line);
-    padding: 0.75rem 1.25rem 1rem;
+    padding: 0.75rem 0.75rem 1rem;
     flex-direction: column;
     align-items: flex-start;
     gap: 0.75rem;
@@ -1123,6 +1136,32 @@ a:hover {
 
   .auth-nav .auth-signup {
     padding: 0.35rem 0.65rem;
+  }
+
+  .app {
+    width: 100%;
+    max-width: 100%;
+    padding: 1rem 0.75rem 3rem;
+  }
+
+  .hero {
+    min-height: min(70vh, 560px);
+    margin: -1rem -0.75rem 1.75rem;
+    width: calc(100% + 1.5rem);
+    max-width: none;
+  }
+
+  .hero-content {
+    padding: 3.25rem 0.85rem 2.5rem;
+    max-width: none;
+  }
+
+  .stats-inline,
+  .home-grid,
+  .section,
+  .footer-inner {
+    width: 100%;
+    max-width: 100%;
   }
 
   .home-grid,
@@ -1149,13 +1188,20 @@ a:hover {
     border-bottom: 1px solid var(--line);
   }
 
-  .hero {
-    min-height: min(70vh, 560px);
+  .user-chip {
+    width: auto;
+    max-width: min(100%, 14rem);
+    flex-wrap: wrap;
+    justify-content: flex-end;
   }
 
-  .user-chip {
-    width: 100%;
-    justify-content: space-between;
+  .user-chip-name {
+    max-width: 5.5rem;
+  }
+
+  .site-footer {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
   }
 }
 
@@ -1167,7 +1213,15 @@ body.auth-locked .app-shell {
 .auth-screen[hidden],
 .app-shell[hidden],
 .auth-form[hidden],
-.auth-message[hidden] {
+.auth-message[hidden],
+.presence-btn[hidden],
+.user-chip-badge[hidden],
+.user-chip[hidden] {
+  display: none !important;
+}
+
+/* Belt-and-suspenders: never show owner tools to non-owners */
+body:not(.is-owner) .presence-btn {
   display: none !important;
 }
 

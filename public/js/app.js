@@ -163,20 +163,27 @@ function applyChrome() {
   }
 
   if (Auth.currentUser && userChip && userChipName) {
+    const isOwner = Auth.currentUser.role === "owner";
+    document.body.classList.toggle("is-owner", isOwner);
     userChip.hidden = false;
     userChipName.textContent =
       Auth.currentUser.displayName || Auth.currentUser.username;
     if (userChipBadge) {
-      userChipBadge.hidden = Auth.currentUser.role !== "owner";
+      userChipBadge.hidden = !isOwner;
       userChipBadge.textContent = t("ownerBadge");
     }
     if (presenceBtn) {
-      presenceBtn.hidden = Auth.currentUser.role !== "owner";
+      presenceBtn.hidden = !isOwner;
+      presenceBtn.setAttribute("aria-hidden", isOwner ? "false" : "true");
       presenceBtn.textContent = t("presenceBtn");
     }
   } else if (userChip) {
+    document.body.classList.remove("is-owner");
     userChip.hidden = true;
-    if (presenceBtn) presenceBtn.hidden = true;
+    if (presenceBtn) {
+      presenceBtn.hidden = true;
+      presenceBtn.setAttribute("aria-hidden", "true");
+    }
   }
 
   applyAuthChrome();
@@ -210,6 +217,7 @@ function setAuthTab(whichtab) {
 function showAuthScreen() {
   document.body.classList.add("auth-locked");
   document.body.classList.remove("is-authenticated");
+  document.body.classList.remove("is-owner");
   stopPresenceHeartbeat();
   closePresenceModal();
   if (authScreen) {
