@@ -454,8 +454,8 @@ function boot() {
     console.log(`Assigned cover images to ${updated} articles`);
   }
 
-  app.listen(PORT, () => {
-    console.log(`Oravexa running at http://localhost:${PORT}`);
+  app.listen(PORT, "0.0.0.0", () => {
+    console.log(`Oravexa running at http://0.0.0.0:${PORT}`);
   });
 }
 

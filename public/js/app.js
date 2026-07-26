@@ -151,7 +151,7 @@ function applyChrome() {
 
   const footer = document.querySelector(".footer-inner");
   if (footer) {
-    const phoneUrl = "https://boxed-platform-friends-largely.trycloudflare.com";
+    const phoneUrl = "https://oravexa.onrender.com";
     footer.innerHTML = `
       <p><strong>Oravexa</strong> — ${escapeHtml(t("footerTagline"))}</p>
       <p class="muted">${escapeHtml(t("footerMeta"))}</p>
