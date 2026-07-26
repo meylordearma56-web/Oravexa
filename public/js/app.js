@@ -156,8 +156,15 @@ function setAuthTab(whichtab) {
 
 function showAuthScreen() {
   document.body.classList.add("auth-locked");
-  if (authScreen) authScreen.hidden = false;
-  if (appShell) appShell.hidden = true;
+  document.body.classList.remove("is-authenticated");
+  if (authScreen) {
+    authScreen.hidden = false;
+    authScreen.setAttribute("aria-hidden", "false");
+  }
+  if (appShell) {
+    appShell.hidden = true;
+    appShell.setAttribute("aria-hidden", "true");
+  }
   appReady = false;
   applyAuthChrome();
   setAuthTab("login");
@@ -165,8 +172,15 @@ function showAuthScreen() {
 
 function enterApp() {
   document.body.classList.remove("auth-locked");
-  if (authScreen) authScreen.hidden = true;
-  if (appShell) appShell.hidden = false;
+  document.body.classList.add("is-authenticated");
+  if (authScreen) {
+    authScreen.hidden = true;
+    authScreen.setAttribute("aria-hidden", "true");
+  }
+  if (appShell) {
+    appShell.hidden = false;
+    appShell.setAttribute("aria-hidden", "false");
+  }
   appReady = true;
   applyChrome();
   if (!location.hash) {
@@ -888,23 +902,24 @@ async function router() {
   }
 }
 
-searchForm.addEventListener("submit", (e) => {
+searchForm?.addEventListener("submit", (e) => {
   e.preventDefault();
-  const q = searchInput.value.trim();
+  const q = searchInput?.value.trim() || "";
   location.hash = q ? `#/search?q=${encodeURIComponent(q)}` : "#/search";
-  searchSuggest.hidden = true;
+  if (searchSuggest) searchSuggest.hidden = true;
 });
 
-searchInput.addEventListener("input", () => {
+searchInput?.addEventListener("input", () => {
   const q = searchInput.value.trim();
   clearTimeout(suggestTimer);
   if (q.length < 2) {
-    searchSuggest.hidden = true;
+    if (searchSuggest) searchSuggest.hidden = true;
     return;
   }
   suggestTimer = setTimeout(async () => {
     try {
       const data = await api(`/api/search?q=${encodeURIComponent(q)}&limit=6`);
+      if (!searchSuggest) return;
       if (!data.results.length) {
         searchSuggest.hidden = true;
         return;
@@ -921,23 +936,24 @@ searchInput.addEventListener("input", () => {
         .join("");
       searchSuggest.hidden = false;
     } catch {
-      searchSuggest.hidden = true;
+      if (searchSuggest) searchSuggest.hidden = true;
     }
   }, 180);
 });
 
 document.addEventListener("click", (e) => {
-  if (!searchForm.contains(e.target)) {
+  if (searchForm && searchSuggest && !searchForm.contains(e.target)) {
     searchSuggest.hidden = true;
   }
 });
 
-navToggle.addEventListener("click", () => {
+navToggle?.addEventListener("click", () => {
+  if (!mainNav) return;
   const open = mainNav.classList.toggle("open");
   navToggle.setAttribute("aria-expanded", String(open));
 });
 
-mainNav.addEventListener("click", (e) => {
+mainNav?.addEventListener("click", (e) => {
   if (e.target.closest("a")) closeMobileNav();
 });
 
@@ -946,8 +962,17 @@ window.addEventListener("hashchange", () => {
 });
 
 async function bootClient() {
+  if (!window.OravexaI18n || !window.OravexaAuth) {
+    console.error("Oravexa failed to load auth/i18n scripts");
+    showAuthScreen();
+    showAuthMessage("App failed to load. Please refresh.", "error");
+    return;
+  }
+
   I18n.setLang(I18n.getLang());
-  applyChrome();
+  applyAuthChrome();
+  syncThemeToggle();
+  syncLangToggle();
 
   if (authScreen) {
     authScreen.hidden = false;
@@ -955,11 +980,17 @@ async function bootClient() {
     if (tagline) tagline.textContent = t("authChecking");
   }
 
-  const user = await Auth.restoreSession();
-  if (user) {
-    enterApp();
-  } else {
+  try {
+    const user = await Auth.restoreSession();
+    if (user) {
+      enterApp();
+    } else {
+      showAuthScreen();
+    }
+  } catch (err) {
+    console.error(err);
     showAuthScreen();
+    showAuthMessage(err.message || "Could not restore session", "error");
   }
 }
 

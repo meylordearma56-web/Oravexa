@@ -1002,7 +1002,12 @@ a:hover {
 
 /* Auth gate */
 body.auth-locked .app-shell {
-  display: none;
+  display: none !important;
+}
+
+.auth-screen[hidden],
+.app-shell[hidden] {
+  display: none !important;
 }
 
 .auth-screen {
