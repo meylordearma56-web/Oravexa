@@ -749,16 +749,8 @@ async function renderEdit(slug, params = {}) {
         <input id="title" name="title" required value="${escapeHtml(article?.title || presetTitle)}" ${article ? "readonly" : ""} />
       </div>
       <div class="form-field">
-        <label for="titleEs">${escapeHtml(t("titleEs"))}</label>
-        <input id="titleEs" name="titleEs" value="${escapeHtml(article?.titleEs || "")}" />
-      </div>
-      <div class="form-field">
         <label for="categories">${escapeHtml(t("categoriesLabel"))} <span class="muted">${escapeHtml(t("commaSeparated"))}</span></label>
         <input id="categories" name="categories" value="${escapeHtml((article?.categories || []).join(", "))}" placeholder="Science, History" />
-      </div>
-      <div class="form-field">
-        <label for="categoriesEs">${escapeHtml(t("categoriesEs"))} <span class="muted">${escapeHtml(t("commaSeparated"))}</span></label>
-        <input id="categoriesEs" name="categoriesEs" value="${escapeHtml((article?.categoriesEs || []).join(", "))}" />
       </div>
       <div class="form-field">
         <label for="author">${escapeHtml(t("yourName"))}</label>
@@ -772,10 +764,6 @@ async function renderEdit(slug, params = {}) {
       <div class="form-field">
         <label for="content">${escapeHtml(t("contentMd"))}</label>
         <textarea id="content" name="content" required placeholder="# Heading&#10;&#10;${escapeHtml(t("startWriting"))}">${escapeHtml(article?.content || "")}</textarea>
-      </div>
-      <div class="form-field">
-        <label for="contentEs">${escapeHtml(t("contentEsMd"))}</label>
-        <textarea id="contentEs" name="contentEs" placeholder="# Encabezado">${escapeHtml(article?.contentEs || "")}</textarea>
       </div>
       ${
         !isNew
@@ -809,14 +797,8 @@ async function renderEdit(slug, params = {}) {
     const fd = new FormData(form);
     const payload = {
       title: String(fd.get("title") || "").trim(),
-      titleEs: String(fd.get("titleEs") || "").trim(),
       content: String(fd.get("content") || "").trim(),
-      contentEs: String(fd.get("contentEs") || "").trim(),
       categories: String(fd.get("categories") || "")
-        .split(",")
-        .map((c) => c.trim())
-        .filter(Boolean),
-      categoriesEs: String(fd.get("categoriesEs") || "")
         .split(",")
         .map((c) => c.trim())
         .filter(Boolean),
