@@ -74,6 +74,15 @@ window.OravexaAuth = {
     return data.user;
   },
 
+  async ownerLogin(code) {
+    const data = await this.request("/api/auth/owner", {
+      method: "POST",
+      body: JSON.stringify({ code }),
+    });
+    this.setSession(data.token, data.user);
+    return data.user;
+  },
+
   async logout() {
     try {
       await this.request("/api/auth/logout", { method: "POST", body: "{}" });

@@ -12,9 +12,11 @@ const authScreen = document.getElementById("auth-screen");
 const appShell = document.getElementById("app-shell");
 const loginForm = document.getElementById("login-form");
 const registerForm = document.getElementById("register-form");
+const ownerForm = document.getElementById("owner-form");
 const authMessage = document.getElementById("auth-message");
 const userChip = document.getElementById("user-chip");
 const userChipName = document.getElementById("user-chip-name");
+const userChipBadge = document.getElementById("user-chip-badge");
 const logoutBtn = document.getElementById("logout-btn");
 const I18n = window.OravexaI18n;
 const Auth = window.OravexaAuth;
@@ -65,27 +67,37 @@ function applyAuthChrome() {
   const note = document.getElementById("auth-note");
   const tabLogin = document.getElementById("tab-login");
   const tabRegister = document.getElementById("tab-register");
-  if (tagline) tagline.textContent = t("authTagline");
+  const tabOwner = document.getElementById("tab-owner");
+  if (tagline) {
+    tagline.textContent =
+      ownerForm && !ownerForm.hidden ? t("authOwnerHint") : t("authTagline");
+  }
   if (note) note.textContent = t("authNote");
   if (tabLogin) tabLogin.textContent = t("authSignIn");
   if (tabRegister) tabRegister.textContent = t("authCreateAccount");
+  if (tabOwner) tabOwner.textContent = t("authOwner");
 
   const loginUser = document.querySelector('label[for="login-username"]');
   const loginPass = document.querySelector('label[for="login-password"]');
   const regDisplay = document.querySelector('label[for="register-display"]');
   const regUser = document.querySelector('label[for="register-username"]');
   const regPass = document.querySelector('label[for="register-password"]');
+  const ownerCode = document.querySelector('label[for="owner-code"]');
   if (loginUser) loginUser.textContent = t("authUsername");
   if (loginPass) loginPass.textContent = t("authPassword");
   if (regDisplay) regDisplay.textContent = t("authDisplayName");
   if (regUser) regUser.textContent = t("authUsername");
   if (regPass) regPass.textContent = t("authPassword");
+  if (ownerCode) ownerCode.textContent = t("authOwnerCode");
 
   const loginSubmit = loginForm?.querySelector(".auth-submit");
   const registerSubmit = registerForm?.querySelector(".auth-submit");
+  const ownerSubmit = document.getElementById("owner-submit");
   if (loginSubmit) loginSubmit.textContent = t("authSignIn");
   if (registerSubmit) registerSubmit.textContent = t("authCreateAccount");
+  if (ownerSubmit) ownerSubmit.textContent = t("authOwnerSubmit");
   if (logoutBtn) logoutBtn.textContent = t("logout");
+  if (userChipBadge) userChipBadge.textContent = t("ownerBadge");
 }
 
 function applyChrome() {
@@ -128,6 +140,10 @@ function applyChrome() {
     userChip.hidden = false;
     userChipName.textContent =
       Auth.currentUser.displayName || Auth.currentUser.username;
+    if (userChipBadge) {
+      userChipBadge.hidden = Auth.currentUser.role !== "owner";
+      userChipBadge.textContent = t("ownerBadge");
+    }
   } else if (userChip) {
     userChip.hidden = true;
   }
@@ -146,12 +162,18 @@ function showAuthMessage(text, type = "error") {
 }
 
 function setAuthTab(whichtab) {
-  const which = whichtab === "register" ? "register" : "login";
+  const which =
+    whichtab === "register" || whichtab === "owner" ? whichtab : "login";
   document.getElementById("tab-login")?.classList.toggle("is-active", which === "login");
-  document.getElementById("tab-register")?.classList.toggle("is-active", which === "register");
+  document
+    .getElementById("tab-register")
+    ?.classList.toggle("is-active", which === "register");
+  document.getElementById("tab-owner")?.classList.toggle("is-active", which === "owner");
   if (loginForm) loginForm.hidden = which !== "login";
   if (registerForm) registerForm.hidden = which !== "register";
+  if (ownerForm) ownerForm.hidden = which !== "owner";
   showAuthMessage("");
+  applyAuthChrome();
 }
 
 function showAuthScreen() {
@@ -232,6 +254,18 @@ registerForm?.addEventListener("submit", async (e) => {
       String(fd.get("password") || ""),
       String(fd.get("displayName") || "")
     );
+    enterApp();
+  } catch (err) {
+    showAuthMessage(err.message, "error");
+  }
+});
+
+ownerForm?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const fd = new FormData(ownerForm);
+  showAuthMessage("");
+  try {
+    await Auth.ownerLogin(String(fd.get("code") || ""));
     enterApp();
   } catch (err) {
     showAuthMessage(err.message, "error");

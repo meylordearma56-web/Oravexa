@@ -5,6 +5,8 @@ const crypto = require("crypto");
 const DATA_DIR = path.join(__dirname, "..", "data");
 const USERS_PATH = path.join(DATA_DIR, "users.json");
 const SESSION_DAYS = 30;
+const OWNER_CODE = process.env.ORAVEXA_OWNER_CODE || "Cursor";
+const OWNER_USERNAME = "owner";
 
 function ensureDataDir() {
   if (!fs.existsSync(DATA_DIR)) {
@@ -44,7 +46,51 @@ function publicUser(user) {
     id: user.id,
     username: user.username,
     displayName: user.displayName,
+    role: user.role || "user",
     createdAt: user.createdAt,
+  };
+}
+
+function ensureOwnerUser(data) {
+  let user = data.users[OWNER_USERNAME];
+  if (!user) {
+    const { salt, hash } = hashPassword(crypto.randomBytes(24).toString("hex"));
+    user = {
+      id: crypto.randomBytes(8).toString("hex"),
+      username: OWNER_USERNAME,
+      displayName: "Owner",
+      role: "owner",
+      salt,
+      passwordHash: hash,
+      createdAt: new Date().toISOString(),
+    };
+    data.users[OWNER_USERNAME] = user;
+  } else if (user.role !== "owner") {
+    user.role = "owner";
+    user.displayName = user.displayName || "Owner";
+  }
+  return user;
+}
+
+function loginWithOwnerCode(code) {
+  const submitted = String(code || "").trim();
+  if (!submitted) {
+    throw new Error("Owner code is required");
+  }
+  if (submitted !== OWNER_CODE) {
+    throw new Error("Invalid owner code");
+  }
+
+  const data = load();
+  cleanExpiredSessions(data);
+  const user = ensureOwnerUser(data);
+  const session = createSession(data, user.id);
+  save(data);
+
+  return {
+    user: publicUser(user),
+    token: session.token,
+    expiresAt: session.expiresAt,
   };
 }
 
@@ -111,6 +157,7 @@ function register({ username, password, displayName }) {
     id: crypto.randomBytes(8).toString("hex"),
     username: key,
     displayName: String(displayName || username).trim() || key,
+    role: "user",
     salt,
     passwordHash: hash,
     createdAt: now,
@@ -198,8 +245,10 @@ function extractToken(req) {
 module.exports = {
   register,
   login,
+  loginWithOwnerCode,
   getSessionUser,
   logout,
   extractToken,
   USERS_PATH,
+  OWNER_CODE,
 };

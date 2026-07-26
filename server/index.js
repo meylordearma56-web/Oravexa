@@ -94,6 +94,16 @@ app.post("/api/auth/login", (req, res) => {
   }
 });
 
+app.post("/api/auth/owner", (req, res) => {
+  try {
+    const { code } = req.body || {};
+    const result = auth.loginWithOwnerCode(code);
+    res.json(result);
+  } catch (err) {
+    res.status(401).json({ error: err.message });
+  }
+});
+
 app.get("/api/auth/me", (req, res) => {
   const token = auth.extractToken(req);
   const session = auth.getSessionUser(token);

@@ -106,6 +106,11 @@ const STRINGS = {
     authWelcomeBack: "Welcome back, {name}",
     logout: "Log out",
     authChecking: "Checking your session…",
+    authOwner: "Owner",
+    authOwnerCode: "Owner code",
+    authOwnerSubmit: "Enter as owner",
+    authOwnerHint: "Owners can sign in with the special access code.",
+    ownerBadge: "Owner",
   },
   es: {
     skip: "Saltar al contenido",
@@ -215,6 +220,11 @@ const STRINGS = {
     authWelcomeBack: "Bienvenido de nuevo, {name}",
     logout: "Cerrar sesión",
     authChecking: "Comprobando tu sesión…",
+    authOwner: "Propietario",
+    authOwnerCode: "Código de propietario",
+    authOwnerSubmit: "Entrar como propietario",
+    authOwnerHint: "Los propietarios pueden entrar con el código de acceso especial.",
+    ownerBadge: "Propietario",
   },
 };
 

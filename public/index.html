@@ -73,6 +73,9 @@
           <button type="button" class="auth-tab" id="tab-register" data-auth-tab="register">
             Create account
           </button>
+          <button type="button" class="auth-tab" id="tab-owner" data-auth-tab="owner">
+            Owner
+          </button>
         </div>
 
         <div id="auth-message" class="auth-message" hidden></div>
@@ -117,6 +120,23 @@
             />
           </div>
           <button class="btn btn-primary auth-submit" type="submit">Create account</button>
+        </form>
+
+        <form id="owner-form" class="auth-form" hidden autocomplete="off">
+          <div class="form-field">
+            <label for="owner-code">Owner code</label>
+            <input
+              id="owner-code"
+              name="code"
+              required
+              autocomplete="off"
+              placeholder="Cursor"
+              spellcheck="false"
+            />
+          </div>
+          <button class="btn btn-primary auth-submit" type="submit" id="owner-submit">
+            Enter as owner
+          </button>
         </form>
 
         <p class="auth-note" id="auth-note">
@@ -194,6 +214,7 @@
           <div class="header-actions">
             <div class="user-chip" id="user-chip" hidden>
               <span class="user-chip-name" id="user-chip-name"></span>
+              <span class="user-chip-badge" id="user-chip-badge" hidden>Owner</span>
               <button type="button" class="btn btn-ghost logout-btn" id="logout-btn">
                 Log out
               </button>

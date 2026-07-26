@@ -1050,8 +1050,8 @@ body.auth-locked .app-shell {
 
 .auth-tabs {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.4rem;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0.35rem;
   margin-bottom: 1rem;
   padding: 0.3rem;
   border-radius: 999px;
@@ -1131,6 +1131,22 @@ body.auth-locked .app-shell {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.user-chip-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--forest-deep);
+  background: rgba(201, 162, 39, 0.28);
+  border-radius: 999px;
+  padding: 0.15rem 0.45rem;
+}
+
+[data-theme="dark"] .user-chip-badge {
+  background: rgba(255, 255, 255, 0.14);
+  color: #f2f2f2;
 }
 
 .logout-btn {
