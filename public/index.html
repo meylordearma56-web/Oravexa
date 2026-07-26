@@ -82,8 +82,16 @@
 
         <form id="login-form" class="auth-form" autocomplete="on">
           <div class="form-field">
-            <label for="login-username">Username</label>
-            <input id="login-username" name="username" required autocomplete="username" />
+            <label for="login-username">Email</label>
+            <input
+              id="login-username"
+              name="username"
+              type="email"
+              required
+              autocomplete="email"
+              inputmode="email"
+              placeholder="you@example.com"
+            />
           </div>
           <div class="form-field">
             <label for="login-password">Password</label>
@@ -105,8 +113,16 @@
             <input id="register-display" name="displayName" autocomplete="nickname" />
           </div>
           <div class="form-field">
-            <label for="register-username">Username</label>
-            <input id="register-username" name="username" required autocomplete="username" minlength="3" />
+            <label for="register-username">Email</label>
+            <input
+              id="register-username"
+              name="username"
+              type="email"
+              required
+              autocomplete="email"
+              inputmode="email"
+              placeholder="you@example.com"
+            />
           </div>
           <div class="form-field">
             <label for="register-password">Password</label>
@@ -306,8 +322,8 @@
       </div>
     </div>
 
-    <script src="/js/i18n.js?v=5" defer></script>
-    <script src="/js/auth.js?v=5" defer></script>
-    <script src="/js/app.js?v=7" defer></script>
+    <script src="/js/i18n.js?v=6" defer></script>
+    <script src="/js/auth.js?v=6" defer></script>
+    <script src="/js/app.js?v=8" defer></script>
   </body>
 </html>

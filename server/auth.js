@@ -42,10 +42,22 @@ function normalizeUsername(username) {
     .toLowerCase();
 }
 
+function isValidEmail(email) {
+  const value = String(email || "").trim();
+  // Practical email check: local@domain.tld
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) && value.length <= 254;
+}
+
+function emailLocalPart(email) {
+  const local = String(email || "").split("@")[0] || "";
+  return local.trim() || "User";
+}
+
 function publicUser(user) {
   return {
     id: user.id,
     username: user.username,
+    email: user.username,
     displayName: user.displayName,
     role: user.role || "user",
     createdAt: user.createdAt,
@@ -141,17 +153,14 @@ function register({ username, password, displayName }) {
   cleanExpiredSessions(data);
 
   const key = normalizeUsername(username);
-  if (!key || key.length < 3) {
-    throw new Error("Username must be at least 3 characters");
-  }
-  if (!/^[a-z0-9._-]+$/i.test(key)) {
-    throw new Error("Username can only use letters, numbers, . _ -");
+  if (!isValidEmail(key)) {
+    throw new Error("Enter a valid email address");
   }
   if (!password || String(password).length < 6) {
     throw new Error("Password must be at least 6 characters");
   }
   if (data.users[key]) {
-    throw new Error("That username is already taken");
+    throw new Error("That email is already registered");
   }
 
   const { salt, hash } = hashPassword(String(password));
@@ -159,7 +168,8 @@ function register({ username, password, displayName }) {
   const user = {
     id: crypto.randomBytes(8).toString("hex"),
     username: key,
-    displayName: String(displayName || username).trim() || key,
+    displayName:
+      String(displayName || "").trim() || emailLocalPart(key),
     role: "user",
     salt,
     passwordHash: hash,
@@ -178,9 +188,12 @@ function login({ username, password }) {
   cleanExpiredSessions(data);
 
   const key = normalizeUsername(username);
+  if (!isValidEmail(key)) {
+    throw new Error("Enter a valid email address");
+  }
   const user = data.users[key];
   if (!user || !verifyPassword(String(password || ""), user.salt, user.passwordHash)) {
-    throw new Error("Invalid username or password");
+    throw new Error("Invalid email or password");
   }
 
   const session = createSession(data, user.id);
