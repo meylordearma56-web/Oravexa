@@ -3,6 +3,8 @@ data/wiki.json
 data/wiki.json.tmp
 data/users.json
 data/users.json.tmp
+data/auth.json
+data/auth.json.tmp
 .DS_Store
 *.log
 .env

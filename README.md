@@ -13,6 +13,7 @@ A full-featured encyclopedia built with **JavaScript** (Node.js + Express + vani
 - Automatic revision history and restore
 - Categories, recent changes, random article
 - Black / white theme toggle
+- Sign up / sign in with persistent login sessions (auto sign-in when you return)
 - Responsive UI with a reading-first design
 
 ## Quick start
@@ -47,6 +48,10 @@ On first launch the server seeds sample articles automatically.
 | `GET` | `/api/categories` | List categories |
 | `GET` | `/api/recent` | Recent revisions |
 | `GET` | `/api/articles/random` | Random article |
+| `POST` | `/api/auth/signup` | Create account + start session |
+| `POST` | `/api/auth/login` | Sign in + start session |
+| `POST` | `/api/auth/logout` | End session |
+| `GET` | `/api/auth/me` | Current user (auto-login check) |
 
 ## Project layout
 
