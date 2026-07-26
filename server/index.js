@@ -224,6 +224,8 @@ app.post("/api/articles", (req, res) => {
       titleEs,
       contentEs,
       categoriesEs,
+      image,
+      imageAlt,
     } = req.body || {};
     if (!title || !String(title).trim()) {
       return res.status(400).json({ error: "Title is required" });
@@ -239,6 +241,8 @@ app.post("/api/articles", (req, res) => {
       titleEs,
       contentEs,
       categoriesEs,
+      image,
+      imageAlt,
     });
     res.status(201).json(withHtml(article, db));
   } catch (err) {
@@ -258,6 +262,8 @@ app.put("/api/articles/:slug", (req, res) => {
       titleEs,
       contentEs,
       categoriesEs,
+      image,
+      imageAlt,
     } = req.body || {};
     if (content !== undefined && !String(content).trim()) {
       return res.status(400).json({ error: "Content cannot be empty" });
@@ -271,6 +277,8 @@ app.put("/api/articles/:slug", (req, res) => {
       titleEs,
       contentEs,
       categoriesEs,
+      image,
+      imageAlt,
     });
     res.json(withHtml(article, db));
   } catch (err) {
@@ -327,6 +335,13 @@ function boot() {
     // Clear require cache so reseed can run after code updates
     delete require.cache[require.resolve("./seed")];
     require("./seed");
+  }
+
+  const latest = store.load();
+  const updated = store.ensureArticleImages(latest);
+  if (updated > 0) {
+    store.save(latest);
+    console.log(`Assigned cover images to ${updated} articles`);
   }
 
   app.listen(PORT, () => {

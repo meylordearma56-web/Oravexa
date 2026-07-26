@@ -634,6 +634,33 @@ a:hover {
   transition: padding-left 180ms ease, background 180ms ease;
 }
 
+.article-list-with-images a {
+  grid-template-columns: 7.5rem minmax(0, 1fr);
+  gap: 0.9rem;
+  align-items: center;
+  padding: 0.85rem 0.15rem;
+}
+
+.article-list-thumb {
+  width: 7.5rem;
+  height: 4.4rem;
+  object-fit: cover;
+  border-radius: 0.55rem;
+  background: var(--line);
+  display: block;
+}
+
+.article-list-thumb.is-empty {
+  background:
+    linear-gradient(135deg, rgba(31, 107, 82, 0.18), rgba(201, 162, 39, 0.2));
+}
+
+.article-list-copy {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
 .article-list a:hover {
   padding-left: 0.45rem;
   background: linear-gradient(90deg, rgba(31, 107, 82, 0.06), transparent);
@@ -705,6 +732,21 @@ a:hover {
   flex-wrap: wrap;
   gap: 0.5rem;
   margin-bottom: 1.25rem;
+}
+
+.article-cover {
+  margin: 0 0 1.25rem;
+  border-radius: 0.85rem;
+  overflow: hidden;
+  background: var(--line);
+  border: 1px solid var(--line);
+}
+
+.article-cover img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
 }
 
 .article-title {
@@ -1086,6 +1128,16 @@ a:hover {
   .home-grid,
   .article-layout {
     grid-template-columns: 1fr;
+  }
+
+  .article-list-with-images a {
+    grid-template-columns: 5.5rem minmax(0, 1fr);
+    gap: 0.7rem;
+  }
+
+  .article-list-thumb {
+    width: 5.5rem;
+    height: 3.4rem;
   }
 
   .toc {
