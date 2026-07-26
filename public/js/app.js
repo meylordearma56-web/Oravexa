@@ -99,6 +99,11 @@ function applyAuthChrome() {
   if (regPass) regPass.textContent = t("authPassword");
   if (ownerCode) ownerCode.textContent = t("authOwnerCode");
 
+  const loginEmail = document.getElementById("login-username");
+  const registerEmail = document.getElementById("register-username");
+  if (loginEmail) loginEmail.placeholder = t("authEmailPlaceholder");
+  if (registerEmail) registerEmail.placeholder = t("authEmailPlaceholder");
+
   const loginSubmit = loginForm?.querySelector(".auth-submit");
   const registerSubmit = registerForm?.querySelector(".auth-submit");
   const ownerSubmit = document.getElementById("owner-submit");
