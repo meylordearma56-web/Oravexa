@@ -6,6 +6,7 @@ const sanitizeHtml = require("sanitize-html");
 const store = require("./store");
 const auth = require("./auth");
 const catalog = require("./mega-catalog");
+const growth = require("./growth");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -153,11 +154,19 @@ app.get("/api/owner/presence", (req, res) => {
 app.get("/api/stats", (_req, res) => {
   const db = store.load();
   const base = store.stats(db);
+  const growthInfo = growth.snapshot();
   res.json({
     ...base,
     articles: catalog.totalArticles(),
     curatedArticles: base.articles,
     catalogArticles: catalog.totalArticles(),
+    growth: {
+      week: growthInfo.week,
+      bonusArticles: growthInfo.bonusArticles,
+      minPerCategory: growthInfo.minPerCategory,
+      maxPerCategory: growthInfo.maxPerCategory,
+      nextGrowthInMs: growthInfo.nextGrowthInMs,
+    },
   });
 });
 
@@ -465,14 +474,30 @@ function initializeData() {
       store.save(latest);
       console.log(`Assigned cover images to ${updated} articles`);
     }
+    growth.logStatus();
     bootState.ready = true;
-    console.log("Oravexa data ready");
+    console.log(
+      `Oravexa data ready (${catalog.totalArticles().toLocaleString("en-US")} catalog articles)`
+    );
   } catch (err) {
     console.error("Data initialization failed:", err);
     bootState.ready = false;
   } finally {
     bootState.seeding = false;
   }
+}
+
+function scheduleGrowthWatch() {
+  // Calendar growth needs no DB write; re-log when a new week begins.
+  const tick = () => {
+    try {
+      growth.logStatus();
+    } catch (err) {
+      console.error("Growth status failed:", err);
+    }
+    setTimeout(tick, Math.min(growth.msUntilNextGrowth() + 5_000, 6 * 60 * 60 * 1000));
+  };
+  setTimeout(tick, Math.min(growth.msUntilNextGrowth() + 5_000, 6 * 60 * 60 * 1000));
 }
 
 function boot() {
@@ -482,6 +507,7 @@ function boot() {
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Oravexa running at http://0.0.0.0:${PORT}`);
     setImmediate(initializeData);
+    scheduleGrowthWatch();
   });
 }
 

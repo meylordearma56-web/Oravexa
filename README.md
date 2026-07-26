@@ -4,7 +4,8 @@ A full-featured encyclopedia built with **JavaScript** (Node.js + Express + vani
 
 ## Features
 
-- Browse a **1,000,000-article** encyclopedia across every main category
+- Browse a **1,000,000+ article** encyclopedia across every main category
+- Every **7 days**, each main category grows by a random batch of new articles (12–48)
 - Full bilingual content (English / Spanish) with a language toggle
 - Sign in / create account with persistent sessions (auto login on return)
 - Full-text search with live suggestions
