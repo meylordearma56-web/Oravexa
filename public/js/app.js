@@ -151,13 +151,13 @@ function applyChrome() {
 
   const footer = document.querySelector(".footer-inner");
   if (footer) {
-    const phoneUrl = "https://usa-statutes-consulting-demonstrate.trycloudflare.com";
+    const phoneUrl = "https://drawings-few-rocket-wires.trycloudflare.com";
     footer.innerHTML = `
       <p><strong>Oravexa</strong> — ${escapeHtml(t("footerTagline"))}</p>
       <p class="muted">${escapeHtml(t("footerMeta"))}</p>
       <p class="footer-phone">
         <span class="footer-phone-label">iOS / Android / PC</span>
-        <a class="footer-phone-link" href="${phoneUrl}" target="_blank" rel="noopener noreferrer">${phoneUrl}</a>
+        <a class="footer-phone-link" href="${phoneUrl}" target="_blank" rel="noopener noreferrer">Oravexa</a>
       </p>
     `;
   }
