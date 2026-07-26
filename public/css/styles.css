@@ -1006,7 +1006,9 @@ body.auth-locked .app-shell {
 }
 
 .auth-screen[hidden],
-.app-shell[hidden] {
+.app-shell[hidden],
+.auth-form[hidden],
+.auth-message[hidden] {
   display: none !important;
 }
 
@@ -1056,6 +1058,8 @@ body.auth-locked .app-shell {
   padding: 0.3rem;
   border-radius: 999px;
   background: rgba(13, 59, 46, 0.06);
+  position: relative;
+  z-index: 2;
 }
 
 [data-theme="dark"] .auth-tabs {
@@ -1068,9 +1072,14 @@ body.auth-locked .app-shell {
   color: var(--ink-soft);
   font: inherit;
   font-weight: 600;
-  padding: 0.55rem 0.75rem;
+  font-size: 0.88rem;
+  line-height: 1.2;
+  padding: 0.7rem 0.4rem;
   border-radius: 999px;
   cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
 }
 
 .auth-tab.is-active {

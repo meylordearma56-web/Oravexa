@@ -229,7 +229,19 @@ langToggle?.addEventListener("click", onLangClick);
 authLangToggle?.addEventListener("click", onLangClick);
 
 document.querySelectorAll("[data-auth-tab]").forEach((btn) => {
-  btn.addEventListener("click", () => setAuthTab(btn.dataset.authTab));
+  btn.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setAuthTab(btn.dataset.authTab);
+  });
+});
+
+// Event delegation fallback for stubborn mobile taps
+authScreen?.addEventListener("click", (event) => {
+  const tab = event.target.closest("[data-auth-tab]");
+  if (!tab || !authScreen.contains(tab)) return;
+  event.preventDefault();
+  setAuthTab(tab.dataset.authTab);
 });
 
 loginForm?.addEventListener("submit", async (e) => {
