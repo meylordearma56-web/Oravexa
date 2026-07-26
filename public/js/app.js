@@ -130,9 +130,14 @@ function applyChrome() {
 
   const footer = document.querySelector(".footer-inner");
   if (footer) {
+    const phoneUrl = "https://italiano-corrections-virtue-cathedral.trycloudflare.com";
     footer.innerHTML = `
       <p><strong>Oravexa</strong> — ${escapeHtml(t("footerTagline"))}</p>
       <p class="muted">${escapeHtml(t("footerMeta"))}</p>
+      <p class="footer-phone">
+        <span class="footer-phone-label">iOS / Android</span>
+        <a class="footer-phone-link" href="${phoneUrl}" target="_blank" rel="noopener noreferrer">${phoneUrl}</a>
+      </p>
     `;
   }
 

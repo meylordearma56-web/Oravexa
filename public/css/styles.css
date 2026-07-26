@@ -970,6 +970,24 @@ a:hover {
   margin: 0.2rem 0;
 }
 
+.footer-phone {
+  margin-top: 0.85rem !important;
+  display: grid;
+  gap: 0.25rem;
+}
+
+.footer-phone-label {
+  font-weight: 700;
+  color: var(--forest);
+  font-size: 0.9rem;
+}
+
+.footer-phone-link {
+  word-break: break-all;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
 .loading {
   padding: 3rem 0;
   color: var(--ink-soft);
