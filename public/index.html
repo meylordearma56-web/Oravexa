@@ -16,6 +16,13 @@
     />
     <link rel="stylesheet" href="/css/styles.css" />
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%230d3b2e'/%3E%3Ctext x='32' y='42' text-anchor='middle' font-size='34' font-family='Georgia' fill='%23e8c547'%3EW%3C/text%3E%3C/svg%3E" />
+    <script>
+      (() => {
+        const saved = localStorage.getItem("wikiTheme");
+        const theme = saved === "dark" || saved === "light" ? saved : "light";
+        document.documentElement.setAttribute("data-theme", theme);
+      })();
+    </script>
   </head>
   <body>
     <a class="skip-link" href="#app">Skip to content</a>
@@ -40,17 +47,29 @@
           <div class="search-suggest" id="search-suggest" hidden></div>
         </form>
 
-        <nav class="main-nav" aria-label="Primary">
-          <a href="#/">Home</a>
-          <a href="#/random">Random</a>
-          <a href="#/create">Create</a>
-          <a href="#/recent">Recent</a>
-          <a href="#/categories">Categories</a>
-        </nav>
+        <div class="header-actions">
+          <button
+            type="button"
+            class="theme-toggle"
+            id="theme-toggle"
+            aria-label="Switch to black theme"
+            title="Toggle black / white"
+          >
+            <span class="theme-icon" aria-hidden="true"></span>
+          </button>
 
-        <button class="nav-toggle" id="nav-toggle" aria-label="Open menu" aria-expanded="false">
-          <span></span><span></span><span></span>
-        </button>
+          <nav class="main-nav" aria-label="Primary">
+            <a href="#/">Home</a>
+            <a href="#/random">Random</a>
+            <a href="#/create">Create</a>
+            <a href="#/recent">Recent</a>
+            <a href="#/categories">Categories</a>
+          </nav>
+
+          <button class="nav-toggle" id="nav-toggle" aria-label="Open menu" aria-expanded="false">
+            <span></span><span></span><span></span>
+          </button>
+        </div>
       </div>
     </header>
 
