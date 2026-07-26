@@ -6,9 +6,12 @@ const navToggle = document.getElementById("nav-toggle");
 const mainNav = document.querySelector(".main-nav");
 const themeToggle = document.getElementById("theme-toggle");
 const langToggle = document.getElementById("lang-toggle");
+const authNav = document.getElementById("auth-nav");
 const I18n = window.OravexaI18n;
 
 let suggestTimer = null;
+let currentUser = null;
+let sessionReady = false;
 
 function t(key, vars) {
   return I18n.t(key, vars);
@@ -84,6 +87,62 @@ function applyChrome() {
 
   syncThemeToggle();
   syncLangToggle();
+  renderAuthNav();
+}
+
+function renderAuthNav() {
+  if (!authNav) return;
+  if (!sessionReady) {
+    authNav.innerHTML = "";
+    return;
+  }
+  if (currentUser) {
+    authNav.innerHTML = `
+      <span class="auth-user" title="${escapeHtml(t("signedInAs", { name: currentUser.username }))}">
+        ${escapeHtml(currentUser.username)}
+      </span>
+      <button type="button" class="btn btn-ghost auth-logout" id="logout-btn">${escapeHtml(t("logOut"))}</button>
+    `;
+    document.getElementById("logout-btn")?.addEventListener("click", async () => {
+      try {
+        await api("/api/auth/logout", { method: "POST" });
+      } catch {
+        /* still clear local session */
+      }
+      currentUser = null;
+      renderAuthNav();
+      if (/^#\/(login|signup)/.test(location.hash)) {
+        location.hash = "#/";
+      } else {
+        router();
+      }
+    });
+    return;
+  }
+  authNav.innerHTML = `
+    <a href="#/login">${escapeHtml(t("signIn"))}</a>
+    <a class="btn btn-secondary auth-signup" href="#/signup">${escapeHtml(t("signUp"))}</a>
+  `;
+}
+
+async function refreshSession() {
+  try {
+    const data = await api("/api/auth/me");
+    currentUser = data.user || null;
+    if (currentUser) {
+      localStorage.setItem("wikiAuthor", currentUser.username);
+    }
+  } catch {
+    currentUser = null;
+  } finally {
+    sessionReady = true;
+    renderAuthNav();
+  }
+  return currentUser;
+}
+
+function currentAuthor() {
+  return currentUser?.username || localStorage.getItem("wikiAuthor") || "";
 }
 
 if (themeToggle) {
@@ -104,6 +163,7 @@ if (langToggle) {
 async function api(path, options = {}) {
   const { headers: extraHeaders, ...rest } = options;
   const res = await fetch(path, {
+    credentials: "same-origin",
     ...rest,
     headers: {
       Accept: "application/json",
@@ -413,7 +473,18 @@ async function renderEdit(slug, params = {}) {
       </div>
       <div class="form-field">
         <label for="author">${escapeHtml(t("yourName"))}</label>
-        <input id="author" name="author" value="${escapeHtml(localStorage.getItem("wikiAuthor") || "")}" placeholder="${escapeHtml(t("anonymous"))}" />
+        <input
+          id="author"
+          name="author"
+          value="${escapeHtml(currentAuthor())}"
+          placeholder="${escapeHtml(t("anonymous"))}"
+          ${currentUser ? "readonly" : ""}
+        />
+        ${
+          currentUser
+            ? `<p class="muted form-hint">${escapeHtml(t("loggedInNotice", { name: currentUser.username }))}</p>`
+            : `<p class="muted form-hint"><a href="#/login">${escapeHtml(t("signIn"))}</a> · <a href="#/signup">${escapeHtml(t("signUp"))}</a></p>`
+        }
       </div>
       <div class="form-field">
         <label for="content">${escapeHtml(t("contentMd"))}</label>
@@ -466,11 +537,16 @@ async function renderEdit(slug, params = {}) {
         .split(",")
         .map((c) => c.trim())
         .filter(Boolean),
-      author: String(fd.get("author") || "").trim() || t("anonymous"),
+      author:
+        currentUser?.username ||
+        String(fd.get("author") || "").trim() ||
+        t("anonymous"),
       summary: String(fd.get("summary") || "").trim() || "Updated article",
     };
 
-    localStorage.setItem("wikiAuthor", payload.author);
+    if (!currentUser) {
+      localStorage.setItem("wikiAuthor", payload.author);
+    }
     message.innerHTML = "";
 
     try {
@@ -544,7 +620,7 @@ async function renderHistory(slug) {
     app.querySelectorAll("[data-restore]").forEach((btn) => {
       btn.addEventListener("click", async () => {
         const id = btn.getAttribute("data-restore");
-        const author = localStorage.getItem("wikiAuthor") || t("anonymous");
+        const author = currentAuthor() || t("anonymous");
         if (!confirm(t("restoreConfirm"))) return;
         try {
           await api(`/api/articles/${encodeURIComponent(slug)}/revisions/${id}/restore`, {
@@ -592,7 +668,7 @@ async function renderRevision(slug, id) {
     `;
 
     document.getElementById("restore-this").addEventListener("click", async () => {
-      const author = localStorage.getItem("wikiAuthor") || t("anonymous");
+      const author = currentAuthor() || t("anonymous");
       if (!confirm(t("restoreConfirm"))) return;
       await api(`/api/articles/${encodeURIComponent(slug)}/revisions/${id}/restore`, {
         method: "POST",
@@ -709,6 +785,117 @@ async function renderRandom() {
   location.replace(`#/article/${article.slug}`);
 }
 
+function renderAuthForm({ mode }) {
+  const isSignup = mode === "signup";
+  if (currentUser) {
+    setTitle(currentUser.username);
+    app.innerHTML = `
+      <section class="auth-panel">
+        <h1 class="page-title">${escapeHtml(t("sessionRestored", { name: currentUser.username }))}</h1>
+        <p class="page-lead">${escapeHtml(t("loggedInNotice", { name: currentUser.username }))}</p>
+        <div class="form-actions">
+          <a class="btn btn-primary" href="#/">${escapeHtml(t("goHome"))}</a>
+          <button type="button" class="btn btn-ghost" id="auth-logout-page">${escapeHtml(t("logOut"))}</button>
+        </div>
+      </section>
+    `;
+    document.getElementById("auth-logout-page")?.addEventListener("click", async () => {
+      try {
+        await api("/api/auth/logout", { method: "POST" });
+      } catch {
+        /* still clear local session */
+      }
+      currentUser = null;
+      renderAuthNav();
+      router();
+    });
+    return;
+  }
+
+  setTitle(isSignup ? t("signupTitle") : t("loginTitle"));
+  app.innerHTML = `
+    <section class="auth-panel">
+      <h1 class="page-title">${escapeHtml(isSignup ? t("signupTitle") : t("loginTitle"))}</h1>
+      <p class="page-lead">${escapeHtml(isSignup ? t("signupLead") : t("loginLead"))}</p>
+      <div id="auth-message"></div>
+      <form class="form-stack auth-form" id="auth-form">
+        <div class="form-field">
+          <label for="username">${escapeHtml(t("username"))}</label>
+          <input id="username" name="username" autocomplete="username" required minlength="3" maxlength="32" />
+        </div>
+        <div class="form-field">
+          <label for="password">${escapeHtml(t("password"))}</label>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            autocomplete="${isSignup ? "new-password" : "current-password"}"
+            required
+            minlength="6"
+            maxlength="128"
+          />
+          ${isSignup ? `<p class="muted form-hint">${escapeHtml(t("passwordHint"))}</p>` : ""}
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-primary" type="submit">
+            ${escapeHtml(isSignup ? t("createAccount") : t("signIn"))}
+          </button>
+        </div>
+      </form>
+      <p class="auth-switch">
+        ${
+          isSignup
+            ? `${escapeHtml(t("haveAccount"))} <a href="#/login">${escapeHtml(t("signIn"))}</a>`
+            : `${escapeHtml(t("noAccount"))} <a href="#/signup">${escapeHtml(t("signUp"))}</a>`
+        }
+      </p>
+    </section>
+  `;
+
+  const form = document.getElementById("auth-form");
+  const message = document.getElementById("auth-message");
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const fd = new FormData(form);
+    const payload = {
+      username: String(fd.get("username") || "").trim(),
+      password: String(fd.get("password") || ""),
+    };
+    const submitBtn = form.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.textContent = isSignup ? t("creatingAccount") : t("signingIn");
+    message.innerHTML = "";
+    try {
+      const endpoint = isSignup ? "/api/auth/signup" : "/api/auth/login";
+      const data = await api(endpoint, {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+      currentUser = data.user;
+      localStorage.setItem("wikiAuthor", currentUser.username);
+      sessionReady = true;
+      renderAuthNav();
+      if (location.hash === "#/" || location.hash === "") {
+        router();
+      } else {
+        location.hash = "#/";
+      }
+    } catch (err) {
+      message.innerHTML = `<div class="notice notice-error">${escapeHtml(err.message)}</div>`;
+      submitBtn.disabled = false;
+      submitBtn.textContent = isSignup ? t("createAccount") : t("signIn");
+    }
+  });
+}
+
+function renderLogin() {
+  return renderAuthForm({ mode: "login" });
+}
+
+function renderSignup() {
+  return renderAuthForm({ mode: "signup" });
+}
+
 async function router() {
   closeMobileNav();
   searchSuggest.hidden = true;
@@ -719,6 +906,8 @@ async function router() {
 
   try {
     if (!root) return renderHome();
+    if (root === "login" || root === "signin") return renderLogin();
+    if (root === "signup" || root === "register") return renderSignup();
     if (root === "article" && a && b === "history") return renderHistory(a);
     if (root === "article" && a && b === "revision" && c) return renderRevision(a, c);
     if (root === "article" && a) return renderArticle(a);
@@ -799,8 +988,11 @@ window.addEventListener("hashchange", router);
 I18n.setLang(I18n.getLang());
 applyChrome();
 
-if (!location.hash) {
-  location.hash = "#/";
-} else {
-  router();
-}
+(async () => {
+  await refreshSession();
+  if (!location.hash) {
+    location.hash = "#/";
+  } else {
+    router();
+  }
+})();
