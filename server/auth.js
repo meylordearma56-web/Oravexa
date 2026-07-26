@@ -5,6 +5,7 @@ const crypto = require("crypto");
 const DATA_DIR = path.join(__dirname, "..", "data");
 const USERS_PATH = path.join(DATA_DIR, "users.json");
 const SESSION_DAYS = 30;
+const ONLINE_MS = 90 * 1000;
 const OWNER_CODE = process.env.ORAVEXA_OWNER_CODE || "Cursor";
 const OWNER_USERNAME = "owner";
 
@@ -121,13 +122,15 @@ function cleanExpiredSessions(data) {
 
 function createSession(data, userId) {
   const token = crypto.randomBytes(32).toString("hex");
+  const now = new Date().toISOString();
   const expiresAt = new Date(
     Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000
   ).toISOString();
   data.sessions[token] = {
     token,
     userId,
-    createdAt: new Date().toISOString(),
+    createdAt: now,
+    lastSeenAt: now,
     expiresAt,
   };
   return data.sessions[token];
@@ -205,7 +208,9 @@ function getSessionUser(token) {
   const user = findUserById(data, session.userId);
   if (!user) return null;
 
-  // Sliding expiry: extend session when used
+  // Sliding expiry + presence: extend session when used
+  const now = new Date().toISOString();
+  session.lastSeenAt = now;
   session.expiresAt = new Date(
     Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000
   ).toISOString();
@@ -215,6 +220,68 @@ function getSessionUser(token) {
     user: publicUser(user),
     token,
     expiresAt: session.expiresAt,
+  };
+}
+
+function heartbeat(token) {
+  const session = getSessionUser(token);
+  if (!session) {
+    throw new Error("Not logged in");
+  }
+  return { ok: true, at: new Date().toISOString() };
+}
+
+function requireOwner(token) {
+  const session = getSessionUser(token);
+  if (!session) {
+    throw Object.assign(new Error("Not logged in"), { status: 401 });
+  }
+  if (session.user.role !== "owner") {
+    throw Object.assign(new Error("Owners only"), { status: 403 });
+  }
+  return session;
+}
+
+function getOnlinePresence(token) {
+  requireOwner(token);
+
+  const data = load();
+  cleanExpiredSessions(data);
+  const cutoff = Date.now() - ONLINE_MS;
+  const byUser = new Map();
+
+  for (const session of Object.values(data.sessions)) {
+    const seenAt = session.lastSeenAt || session.createdAt;
+    if (!seenAt || new Date(seenAt).getTime() < cutoff) continue;
+
+    const user = findUserById(data, session.userId);
+    if (!user) continue;
+
+    const prev = byUser.get(user.id);
+    if (!prev || new Date(seenAt).getTime() > new Date(prev.lastSeenAt).getTime()) {
+      byUser.set(user.id, {
+        id: user.id,
+        username: user.username,
+        displayName: user.displayName,
+        role: user.role || "user",
+        lastSeenAt: seenAt,
+      });
+    }
+  }
+
+  const online = Array.from(byUser.values()).sort((a, b) =>
+    a.displayName.localeCompare(b.displayName)
+  );
+  const owners = online.filter((u) => u.role === "owner").length;
+  const users = online.length - owners;
+
+  return {
+    onlineCount: online.length,
+    owners,
+    users,
+    checkedAt: new Date().toISOString(),
+    onlineMs: ONLINE_MS,
+    online,
   };
 }
 
@@ -247,8 +314,11 @@ module.exports = {
   login,
   loginWithOwnerCode,
   getSessionUser,
+  heartbeat,
+  getOnlinePresence,
   logout,
   extractToken,
   USERS_PATH,
   OWNER_CODE,
+  ONLINE_MS,
 };

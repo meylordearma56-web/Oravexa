@@ -1265,9 +1265,173 @@ body.auth-locked .app-shell {
   color: #f2f2f2;
 }
 
-.logout-btn {
+.logout-btn,
+.presence-btn {
   padding: 0.4rem 0.75rem;
   font-size: 0.82rem;
+}
+
+.presence-btn {
+  color: var(--forest-deep);
+  border: 1px solid rgba(201, 162, 39, 0.45);
+  background: rgba(201, 162, 39, 0.16);
+}
+
+[data-theme="dark"] .presence-btn {
+  color: #f2f2f2;
+  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.presence-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+}
+
+.presence-modal[hidden] {
+  display: none !important;
+}
+
+.presence-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(12, 18, 14, 0.48);
+}
+
+.presence-panel {
+  position: relative;
+  z-index: 1;
+  width: min(34rem, 100%);
+  max-height: min(85vh, 40rem);
+  overflow: auto;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  padding: 1.15rem 1.25rem 1.35rem;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.18);
+}
+
+.presence-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.35rem;
+}
+
+.presence-panel-head h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: var(--forest-deep);
+}
+
+.presence-summary {
+  margin: 0 0 1rem;
+  font-size: 0.92rem;
+}
+
+.presence-bars {
+  display: grid;
+  gap: 0.7rem;
+  margin-bottom: 1.1rem;
+}
+
+.presence-bar-row {
+  display: grid;
+  grid-template-columns: 5.5rem 1fr 2rem;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.presence-bar-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.presence-bar-track {
+  height: 0.85rem;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+[data-theme="dark"] .presence-bar-track {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.presence-bar-fill {
+  height: 100%;
+  border-radius: inherit;
+  min-width: 0;
+  transition: width 0.35s ease;
+}
+
+.presence-bar-fill.is-owner {
+  background: linear-gradient(90deg, #c9a227, #e0c35a);
+}
+
+.presence-bar-fill.is-user {
+  background: linear-gradient(90deg, var(--forest), #3d7a5c);
+}
+
+.presence-bar-count {
+  text-align: right;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.presence-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.presence-person {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 0.65rem;
+  align-items: center;
+  padding: 0.55rem 0.7rem;
+  border-top: 1px solid var(--line);
+}
+
+.presence-person:first-child {
+  border-top: 0;
+}
+
+.presence-person-name {
+  font-weight: 600;
+  color: var(--forest-deep);
+}
+
+.presence-person.is-owner .presence-person-name {
+  color: #9a7a12;
+}
+
+[data-theme="dark"] .presence-person.is-owner .presence-person-name {
+  color: #e0c35a;
+}
+
+.presence-person-role,
+.presence-person-seen {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.presence-empty {
+  padding: 0.75rem 0.25rem;
+  color: var(--muted);
+}
+
+body.presence-open {
+  overflow: hidden;
 }
 
 .auth-tools {

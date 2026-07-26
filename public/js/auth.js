@@ -91,4 +91,16 @@ window.OravexaAuth = {
     }
     this.clearSession();
   },
+
+  async heartbeat() {
+    if (!this.getToken()) return null;
+    return this.request("/api/auth/heartbeat", {
+      method: "POST",
+      body: "{}",
+    });
+  },
+
+  async getPresence() {
+    return this.request("/api/owner/presence");
+  },
 };

@@ -119,6 +119,27 @@ app.post("/api/auth/logout", (req, res) => {
   res.json({ ok: true });
 });
 
+app.post("/api/auth/heartbeat", (req, res) => {
+  try {
+    const token = auth.extractToken(req);
+    const result = auth.heartbeat(token);
+    res.json(result);
+  } catch (err) {
+    res.status(401).json({ error: err.message });
+  }
+});
+
+app.get("/api/owner/presence", (req, res) => {
+  try {
+    const token = auth.extractToken(req);
+    const result = auth.getOnlinePresence(token);
+    res.json(result);
+  } catch (err) {
+    const status = err.status || 401;
+    res.status(status).json({ error: err.message });
+  }
+});
+
 app.get("/api/stats", (_req, res) => {
   const db = store.load();
   res.json(store.stats(db));
