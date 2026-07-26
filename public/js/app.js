@@ -1197,6 +1197,23 @@ window.addEventListener("hashchange", () => {
   if (appReady) router();
 });
 
+async function waitForServerReady(maxMs = 90000) {
+  const started = Date.now();
+  while (Date.now() - started < maxMs) {
+    try {
+      const res = await fetch("/api/health", { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.ready) return true;
+      }
+    } catch {
+      // Server may still be waking / reseeding after Render sleep.
+    }
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+  return false;
+}
+
 async function bootClient() {
   if (!window.OravexaI18n || !window.OravexaAuth) {
     console.error("Oravexa failed to load auth/i18n scripts");
@@ -1217,6 +1234,7 @@ async function bootClient() {
   }
 
   try {
+    await waitForServerReady();
     const user = await Auth.restoreSession();
     if (user) {
       enterApp();
