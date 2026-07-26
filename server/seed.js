@@ -1,17 +1,184 @@
 const fs = require("fs");
 const path = require("path");
 const store = require("./store");
+const { generateArticles } = require("./generate-articles");
 
 const DB_PATH = path.join(__dirname, "..", "data", "wiki.json");
 
+
+const coreSpanish = {
+  Oravexa: {
+    titleEs: "Oravexa",
+    categoriesEs: ["Ayuda", "Meta"],
+    contentEs: `# Bienvenido a Oravexa
+
+**Oravexa** es una enciclopedia libre y colaborativa que puedes leer y editar en el navegador. Cada artículo está escrito en Markdown, se versiona automáticamente y se organiza por categorías.
+
+## Qué puedes hacer
+
+- **Explorar** artículos destacados y actualizados desde la página de inicio
+- **Buscar** en toda la enciclopedia por título o contenido
+- **Crear** artículos nuevos y ampliar los existentes
+- **Revisar el historial** y restaurar versiones anteriores
+- Abrir un **artículo al azar** cuando quieras una sorpresa
+
+## Conceptos básicos de edición
+
+Los artículos usan Markdown:
+
+\`\`\`
+## Encabezado
+**Negrita** y *cursiva*
+[Enlaces](Titulo_Articulo)
+- Listas
+\`\`\`
+
+Enlaza otras páginas con títulos tipo wiki o crea una página faltante desde Crear.
+
+## Espíritu comunitario
+
+Sé claro, sé curioso y comparte lo que sabes. El conocimiento crece cuando muchas manos lo cuidan.
+`,
+  },
+  "Solar System": {
+    titleEs: "Sistema Solar",
+    categoriesEs: ["Astronomía", "Ciencia"],
+    contentEs: `# Sistema Solar
+
+El **Sistema Solar** es el sistema gravitacionalmente unido del Sol y los objetos que orbitan a su alrededor. Se formó hace unos 4.600 millones de años a partir del colapso de una gran nube molecular.
+
+## Estructura
+
+En el centro está el **Sol**, una estrella que concentra más del 99% de la masa del sistema. A su alrededor orbitan ocho planetas, planetas enanos, lunas, asteroides y cometas.
+
+### Planetas interiores
+
+1. Mercurio
+2. Venus
+3. Tierra
+4. Marte
+
+### Planetas exteriores
+
+1. Júpiter
+2. Saturno
+3. Urano
+4. Neptuno
+
+## Exploración
+
+Sondas como Voyager, Cassini y Perseverance transformaron nuestra visión de mundos vecinos.
+`,
+  },
+  JavaScript: {
+    titleEs: "JavaScript",
+    categoriesEs: ["Informática", "Programación"],
+    contentEs: `# JavaScript
+
+**JavaScript** es un lenguaje de programación de alto nivel y multiparadigma que impulsa páginas web interactivas y, cada vez más, servidores, apps móviles y herramientas de escritorio.
+
+## Orígenes
+
+Creado por Brendan Eich en 1995 para Netscape Navigator, se estandarizó como **ECMAScript**. Hoy se ejecuta en todos los navegadores principales y en servidores con runtimes como Node.js.
+
+## Ideas centrales
+
+- Tipado dinámico
+- Funciones de primera clase
+- Herencia prototípica
+- Bucle de eventos
+
+## Ecosistema
+
+Desde interfaces React hasta APIs Express, JavaScript sigue siendo uno de los lenguajes más usados del mundo.
+`,
+  },
+  Photosynthesis: {
+    titleEs: "Fotosíntesis",
+    categoriesEs: ["Biología", "Ciencia"],
+    contentEs: `# Fotosíntesis
+
+La **fotosíntesis** es el proceso por el cual plantas verdes, algas y algunas bacterias convierten la energía luminosa en energía química almacenada en azúcares.
+
+## Ecuación básica
+
+> 6 CO₂ + 6 H₂O + luz → C₆H₁₂O₆ + 6 O₂
+
+## Dónde ocurre
+
+En las plantas ocurre principalmente en los **cloroplastos**, orgánulos con el pigmento verde **clorofila**.
+
+## Por qué importa
+
+Llena la atmósfera de oxígeno y forma la base de casi todas las cadenas alimentarias del planeta.
+`,
+  },
+  "Library of Alexandria": {
+    titleEs: "Biblioteca de Alejandría",
+    categoriesEs: ["Historia", "Cultura"],
+    contentEs: `# Biblioteca de Alejandría
+
+La **Biblioteca de Alejandría** fue una de las bibliotecas más grandes e importantes del mundo antiguo. Fundada en Egipto durante la dinastía ptolemaica, se convirtió en símbolo del saber universal.
+
+## Ambición
+
+Buscaba reunir todos los libros del mundo. Su legado inspira bibliotecas, archivos y enciclopedias colaborativas modernas.
+`,
+  },
+  "Plate Tectonics": {
+    titleEs: "Tectónica de placas",
+    categoriesEs: ["Ciencias de la Tierra", "Ciencia"],
+    contentEs: `# Tectónica de placas
+
+La **tectónica de placas** es la teoría científica de que la capa externa de la Tierra está dividida en placas rígidas que se mueven sobre el manto. Sus interacciones dan forma a continentes, océanos, montañas y terremotos.
+
+## Tipos de límites
+
+- **Divergentes** — las placas se separan
+- **Convergentes** — las placas chocan
+- **Transformantes** — las placas se deslizan lateralmente
+`,
+  },
+  Jazz: {
+    titleEs: "Jazz",
+    categoriesEs: ["Música", "Cultura"],
+    contentEs: `# Jazz
+
+El **jazz** es un género musical que surgió en comunidades afroamericanas de Nueva Orleans a finales del siglo XIX y principios del XX. Combina blues, ragtime, marchas de banda de metales e improvisación.
+
+## Sellos distintivos
+
+- Síncopa y sensación de swing
+- Notas blue y tono expresivo
+- Improvisación como conversación
+`,
+  },
+  Markdown: {
+    titleEs: "Markdown",
+    categoriesEs: ["Informática", "Ayuda"],
+    contentEs: `# Markdown
+
+**Markdown** es un lenguaje de marcado ligero para dar formato a texto plano. Los artículos de Oravexa se escriben en Markdown para que sean fáciles de editar y agradables de leer.
+
+## Sintaxis común
+
+| Escribes | Obtienes |
+| --- | --- |
+| \`# Encabezado\` | Un encabezado principal |
+| \`**negrita**\` | **negrita** |
+| \`*cursiva*\` | *cursiva* |
+`,
+  },
+};
+
 const seedArticles = [
   {
-    title: "WikiPedia",
+    title: "Oravexa",
     categories: ["Help", "Meta"],
     author: "System",
-    content: `# Welcome to WikiPedia
+    content: `# Welcome to Oravexa
 
-**WikiPedia** is a free, collaborative encyclopedia you can read and edit in your browser. Every article is written in Markdown, versioned automatically, and organized by categories.
+**Oravexa** is a free, collaborative encyclopedia you can read and edit in your browser. Every article is written in Markdown, versioned automatically, and organized by categories.
 
 ## What you can do
 
@@ -228,7 +395,7 @@ Jazz shaped film scores, civil rights soundtracks, and global popular music. It 
     author: "System",
     content: `# Markdown
 
-**Markdown** is a lightweight markup language for formatting plain text. WikiPedia articles are written in Markdown so they stay easy to edit and pleasant to read.
+**Markdown** is a lightweight markup language for formatting plain text. Oravexa articles are written in Markdown so they stay easy to edit and pleasant to read.
 
 ## Common syntax
 
@@ -263,12 +430,37 @@ function seed() {
   }
 
   const db = store.load();
+  const localizedCore = seedArticles.map((article) => ({
+    ...article,
+    ...(coreSpanish[article.title] || {
+      titleEs: article.title,
+      contentEs: article.content,
+      categoriesEs: article.categories,
+    }),
+  }));
 
-  for (const article of seedArticles) {
-    store.createArticle(db, article);
+  const generated = generateArticles();
+  const allArticles = [...localizedCore, ...generated];
+  let created = 0;
+  let skipped = 0;
+
+  for (const article of allArticles) {
+    try {
+      store.createArticle(db, article, { deferSave: true });
+      created += 1;
+    } catch (err) {
+      if (String(err.message).includes("already exists")) {
+        skipped += 1;
+        continue;
+      }
+      throw err;
+    }
   }
 
-  console.log(`Seeded ${seedArticles.length} articles → ${DB_PATH}`);
+  store.save(db);
+  console.log(
+    `Seeded ${created} articles (${skipped} skipped) → ${DB_PATH}`
+  );
 }
 
 seed();

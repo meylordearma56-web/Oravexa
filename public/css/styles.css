@@ -166,17 +166,27 @@ a:hover {
 }
 
 .brand-mark {
-  width: 2.25rem;
-  height: 2.25rem;
+  width: 2.35rem;
+  height: 2.35rem;
   display: grid;
   place-items: center;
   border-radius: 10px;
   background: linear-gradient(145deg, var(--forest), var(--forest-deep));
   color: var(--brass-soft);
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 1.25rem;
   box-shadow: inset 0 0 0 1px rgba(232, 197, 71, 0.25);
+  overflow: hidden;
+}
+
+.brand-mark svg {
+  width: 1.55rem;
+  height: 1.55rem;
+  display: block;
+}
+
+[data-theme="dark"] .brand-mark {
+  background: linear-gradient(145deg, #1a1a1a, #000);
+  color: #f2f2f2;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
 }
 
 .brand-text {
@@ -255,6 +265,32 @@ a:hover {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+}
+
+.lang-toggle {
+  min-height: 2.35rem;
+  padding: 0 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform 160ms ease, background 180ms ease, border-color 180ms ease;
+}
+
+.lang-toggle:hover {
+  transform: translateY(-1px);
+  border-color: var(--canopy);
+}
+
+.lang-toggle:focus-visible {
+  outline: 2px solid rgba(31, 107, 82, 0.45);
+  outline-offset: 2px;
 }
 
 .theme-toggle {
@@ -460,6 +496,14 @@ a:hover {
 .hero .btn-primary {
   background: var(--brass-soft);
   color: var(--forest-deep);
+}
+
+[data-theme="dark"] .hero .btn-primary {
+  color: #111111;
+}
+
+[data-theme="dark"] .hero .btn-primary:hover {
+  color: #111111;
 }
 
 .hero .btn-secondary {
@@ -775,13 +819,18 @@ a:hover {
 }
 
 .notice-error {
-  background: rgba(179, 59, 42, 0.1);
-  color: #7a2418;
+  background: rgba(179, 59, 42, 0.12);
+  color: var(--coral-alert);
 }
 
 .notice-ok {
   background: rgba(31, 107, 82, 0.12);
   color: var(--forest-deep);
+}
+
+[data-theme="dark"] .notice-ok {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--ink);
 }
 
 .empty-state {
