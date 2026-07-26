@@ -4,6 +4,7 @@ const cors = require("cors");
 const { marked } = require("marked");
 const sanitizeHtml = require("sanitize-html");
 const store = require("./store");
+const auth = require("./auth");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -71,6 +72,41 @@ app.use(express.static(path.join(__dirname, "..", "public")));
 
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true, service: "oravexa" });
+});
+
+app.post("/api/auth/register", (req, res) => {
+  try {
+    const { username, password, displayName } = req.body || {};
+    const result = auth.register({ username, password, displayName });
+    res.status(201).json(result);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.post("/api/auth/login", (req, res) => {
+  try {
+    const { username, password } = req.body || {};
+    const result = auth.login({ username, password });
+    res.json(result);
+  } catch (err) {
+    res.status(401).json({ error: err.message });
+  }
+});
+
+app.get("/api/auth/me", (req, res) => {
+  const token = auth.extractToken(req);
+  const session = auth.getSessionUser(token);
+  if (!session) {
+    return res.status(401).json({ error: "Not logged in" });
+  }
+  res.json(session);
+});
+
+app.post("/api/auth/logout", (req, res) => {
+  const token = auth.extractToken(req);
+  auth.logout(token);
+  res.json({ ok: true });
 });
 
 app.get("/api/stats", (_req, res) => {

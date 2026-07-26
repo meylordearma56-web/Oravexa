@@ -6,9 +6,21 @@ const navToggle = document.getElementById("nav-toggle");
 const mainNav = document.querySelector(".main-nav");
 const themeToggle = document.getElementById("theme-toggle");
 const langToggle = document.getElementById("lang-toggle");
+const authLangToggle = document.getElementById("auth-lang-toggle");
+const authThemeToggle = document.getElementById("auth-theme-toggle");
+const authScreen = document.getElementById("auth-screen");
+const appShell = document.getElementById("app-shell");
+const loginForm = document.getElementById("login-form");
+const registerForm = document.getElementById("register-form");
+const authMessage = document.getElementById("auth-message");
+const userChip = document.getElementById("user-chip");
+const userChipName = document.getElementById("user-chip-name");
+const logoutBtn = document.getElementById("logout-btn");
 const I18n = window.OravexaI18n;
+const Auth = window.OravexaAuth;
 
 let suggestTimer = null;
+let appReady = false;
 
 function t(key, vars) {
   return I18n.t(key, vars);
@@ -21,14 +33,14 @@ function getTheme() {
 }
 
 function syncThemeToggle() {
-  if (!themeToggle) return;
   const next = getTheme() === "dark" ? "light" : "dark";
-  themeToggle.setAttribute(
-    "aria-label",
-    next === "dark" ? t("themeToDark") : t("themeToLight")
-  );
-  themeToggle.title =
-    next === "dark" ? t("themeTitleDark") : t("themeTitleLight");
+  const label = next === "dark" ? t("themeToDark") : t("themeToLight");
+  const title = next === "dark" ? t("themeTitleDark") : t("themeTitleLight");
+  for (const btn of [themeToggle, authThemeToggle]) {
+    if (!btn) continue;
+    btn.setAttribute("aria-label", label);
+    btn.title = title;
+  }
 }
 
 function setTheme(theme) {
@@ -40,10 +52,40 @@ function setTheme(theme) {
 }
 
 function syncLangToggle() {
-  if (!langToggle) return;
-  langToggle.textContent = t("langSwitch");
-  langToggle.setAttribute("aria-label", t("langLabel"));
-  langToggle.title = t("langLabel");
+  for (const btn of [langToggle, authLangToggle]) {
+    if (!btn) continue;
+    btn.textContent = t("langSwitch");
+    btn.setAttribute("aria-label", t("langLabel"));
+    btn.title = t("langLabel");
+  }
+}
+
+function applyAuthChrome() {
+  const tagline = document.getElementById("auth-tagline");
+  const note = document.getElementById("auth-note");
+  const tabLogin = document.getElementById("tab-login");
+  const tabRegister = document.getElementById("tab-register");
+  if (tagline) tagline.textContent = t("authTagline");
+  if (note) note.textContent = t("authNote");
+  if (tabLogin) tabLogin.textContent = t("authSignIn");
+  if (tabRegister) tabRegister.textContent = t("authCreateAccount");
+
+  const loginUser = document.querySelector('label[for="login-username"]');
+  const loginPass = document.querySelector('label[for="login-password"]');
+  const regDisplay = document.querySelector('label[for="register-display"]');
+  const regUser = document.querySelector('label[for="register-username"]');
+  const regPass = document.querySelector('label[for="register-password"]');
+  if (loginUser) loginUser.textContent = t("authUsername");
+  if (loginPass) loginPass.textContent = t("authPassword");
+  if (regDisplay) regDisplay.textContent = t("authDisplayName");
+  if (regUser) regUser.textContent = t("authUsername");
+  if (regPass) regPass.textContent = t("authPassword");
+
+  const loginSubmit = loginForm?.querySelector(".auth-submit");
+  const registerSubmit = registerForm?.querySelector(".auth-submit");
+  if (loginSubmit) loginSubmit.textContent = t("authSignIn");
+  if (registerSubmit) registerSubmit.textContent = t("authCreateAccount");
+  if (logoutBtn) logoutBtn.textContent = t("logout");
 }
 
 function applyChrome() {
@@ -82,32 +124,120 @@ function applyChrome() {
     `;
   }
 
+  if (Auth.currentUser && userChip && userChipName) {
+    userChip.hidden = false;
+    userChipName.textContent =
+      Auth.currentUser.displayName || Auth.currentUser.username;
+  } else if (userChip) {
+    userChip.hidden = true;
+  }
+
+  applyAuthChrome();
   syncThemeToggle();
   syncLangToggle();
 }
 
-if (themeToggle) {
-  themeToggle.addEventListener("click", () => {
-    setTheme(getTheme() === "dark" ? "light" : "dark");
-  });
+function showAuthMessage(text, type = "error") {
+  if (!authMessage) return;
+  authMessage.hidden = !text;
+  authMessage.textContent = text || "";
+  authMessage.classList.toggle("is-error", type === "error");
+  authMessage.classList.toggle("is-ok", type === "ok");
 }
 
-if (langToggle) {
-  langToggle.addEventListener("click", () => {
-    const next = I18n.getLang() === "es" ? "en" : "es";
-    I18n.setLang(next);
-    applyChrome();
-    router();
-  });
+function setAuthTab(whichtab) {
+  const which = whichtab === "register" ? "register" : "login";
+  document.getElementById("tab-login")?.classList.toggle("is-active", which === "login");
+  document.getElementById("tab-register")?.classList.toggle("is-active", which === "register");
+  if (loginForm) loginForm.hidden = which !== "login";
+  if (registerForm) registerForm.hidden = which !== "register";
+  showAuthMessage("");
 }
+
+function showAuthScreen() {
+  document.body.classList.add("auth-locked");
+  if (authScreen) authScreen.hidden = false;
+  if (appShell) appShell.hidden = true;
+  appReady = false;
+  applyAuthChrome();
+  setAuthTab("login");
+}
+
+function enterApp() {
+  document.body.classList.remove("auth-locked");
+  if (authScreen) authScreen.hidden = true;
+  if (appShell) appShell.hidden = false;
+  appReady = true;
+  applyChrome();
+  if (!location.hash) {
+    location.hash = "#/";
+  } else {
+    router();
+  }
+}
+
+function onThemeClick() {
+  setTheme(getTheme() === "dark" ? "light" : "dark");
+}
+
+function onLangClick() {
+  const next = I18n.getLang() === "es" ? "en" : "es";
+  I18n.setLang(next);
+  applyChrome();
+  if (appReady) router();
+}
+
+themeToggle?.addEventListener("click", onThemeClick);
+authThemeToggle?.addEventListener("click", onThemeClick);
+langToggle?.addEventListener("click", onLangClick);
+authLangToggle?.addEventListener("click", onLangClick);
+
+document.querySelectorAll("[data-auth-tab]").forEach((btn) => {
+  btn.addEventListener("click", () => setAuthTab(btn.dataset.authTab));
+});
+
+loginForm?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const fd = new FormData(loginForm);
+  showAuthMessage("");
+  try {
+    await Auth.login(String(fd.get("username") || ""), String(fd.get("password") || ""));
+    enterApp();
+  } catch (err) {
+    showAuthMessage(err.message, "error");
+  }
+});
+
+registerForm?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const fd = new FormData(registerForm);
+  showAuthMessage("");
+  try {
+    await Auth.register(
+      String(fd.get("username") || ""),
+      String(fd.get("password") || ""),
+      String(fd.get("displayName") || "")
+    );
+    enterApp();
+  } catch (err) {
+    showAuthMessage(err.message, "error");
+  }
+});
+
+logoutBtn?.addEventListener("click", async () => {
+  await Auth.logout();
+  showAuthScreen();
+});
 
 async function api(path, options = {}) {
   const { headers: extraHeaders, ...rest } = options;
+  const token = Auth.getToken();
   const res = await fetch(path, {
     ...rest,
     headers: {
       Accept: "application/json",
       ...(rest.body ? { "Content-Type": "application/json" } : {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(extraHeaders || {}),
     },
   });
@@ -413,7 +543,12 @@ async function renderEdit(slug, params = {}) {
       </div>
       <div class="form-field">
         <label for="author">${escapeHtml(t("yourName"))}</label>
-        <input id="author" name="author" value="${escapeHtml(localStorage.getItem("wikiAuthor") || "")}" placeholder="${escapeHtml(t("anonymous"))}" />
+        <input id="author" name="author" value="${escapeHtml(
+          Auth.currentUser?.displayName ||
+            Auth.currentUser?.username ||
+            localStorage.getItem("wikiAuthor") ||
+            ""
+        )}" placeholder="${escapeHtml(t("anonymous"))}" />
       </div>
       <div class="form-field">
         <label for="content">${escapeHtml(t("contentMd"))}</label>
@@ -466,7 +601,11 @@ async function renderEdit(slug, params = {}) {
         .split(",")
         .map((c) => c.trim())
         .filter(Boolean),
-      author: String(fd.get("author") || "").trim() || t("anonymous"),
+      author:
+        String(fd.get("author") || "").trim() ||
+        Auth.currentUser?.displayName ||
+        Auth.currentUser?.username ||
+        t("anonymous"),
       summary: String(fd.get("summary") || "").trim() || "Updated article",
     };
 
@@ -544,7 +683,11 @@ async function renderHistory(slug) {
     app.querySelectorAll("[data-restore]").forEach((btn) => {
       btn.addEventListener("click", async () => {
         const id = btn.getAttribute("data-restore");
-        const author = localStorage.getItem("wikiAuthor") || t("anonymous");
+        const author =
+          Auth.currentUser?.displayName ||
+          Auth.currentUser?.username ||
+          localStorage.getItem("wikiAuthor") ||
+          t("anonymous");
         if (!confirm(t("restoreConfirm"))) return;
         try {
           await api(`/api/articles/${encodeURIComponent(slug)}/revisions/${id}/restore`, {
@@ -592,7 +735,11 @@ async function renderRevision(slug, id) {
     `;
 
     document.getElementById("restore-this").addEventListener("click", async () => {
-      const author = localStorage.getItem("wikiAuthor") || t("anonymous");
+      const author =
+        Auth.currentUser?.displayName ||
+        Auth.currentUser?.username ||
+        localStorage.getItem("wikiAuthor") ||
+        t("anonymous");
       if (!confirm(t("restoreConfirm"))) return;
       await api(`/api/articles/${encodeURIComponent(slug)}/revisions/${id}/restore`, {
         method: "POST",
@@ -794,13 +941,26 @@ mainNav.addEventListener("click", (e) => {
   if (e.target.closest("a")) closeMobileNav();
 });
 
-window.addEventListener("hashchange", router);
+window.addEventListener("hashchange", () => {
+  if (appReady) router();
+});
 
-I18n.setLang(I18n.getLang());
-applyChrome();
+async function bootClient() {
+  I18n.setLang(I18n.getLang());
+  applyChrome();
 
-if (!location.hash) {
-  location.hash = "#/";
-} else {
-  router();
+  if (authScreen) {
+    authScreen.hidden = false;
+    const tagline = document.getElementById("auth-tagline");
+    if (tagline) tagline.textContent = t("authChecking");
+  }
+
+  const user = await Auth.restoreSession();
+  if (user) {
+    enterApp();
+  } else {
+    showAuthScreen();
+  }
 }
+
+bootClient();
