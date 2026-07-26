@@ -71,8 +71,17 @@ app.use(cors());
 app.use(express.json({ limit: "1mb" }));
 app.use(express.static(path.join(__dirname, "..", "public")));
 
+const bootState = { ready: false, seeding: false };
+
 app.get("/api/health", (_req, res) => {
-  res.json({ ok: true, service: "oravexa" });
+  // Always 200 once the process is listening so Render never shows
+  // plain "Not Found" during cold start / reseeding.
+  res.status(200).json({
+    ok: true,
+    service: "oravexa",
+    ready: bootState.ready,
+    seeding: bootState.seeding,
+  });
 });
 
 app.post("/api/auth/register", (req, res) => {
@@ -429,33 +438,50 @@ app.get(["/", "/index.html"], (_req, res) => {
   res.sendFile(path.join(__dirname, "..", "public", "index.html"));
 });
 
+function initializeData() {
+  bootState.seeding = true;
+  try {
+    const db = store.load();
+    const count = Object.keys(db.articles).length;
+    const cats = store.listCategories(db);
+    const mainCats = cats.filter(
+      (c) => !["Help", "Meta", "Programming", "Encyclopedia"].includes(c.name)
+    );
+    const needsSeed =
+      count === 0 ||
+      Boolean(db.articles.wikipedia) ||
+      !db.articles.oravexa ||
+      mainCats.some((c) => c.count < 100);
+    if (needsSeed) {
+      console.log("Seeding encyclopedia data…");
+      // Clear require cache so reseed can run after code updates
+      delete require.cache[require.resolve("./seed")];
+      require("./seed");
+    }
+
+    const latest = store.load();
+    const updated = store.ensureArticleImages(latest);
+    if (updated > 0) {
+      store.save(latest);
+      console.log(`Assigned cover images to ${updated} articles`);
+    }
+    bootState.ready = true;
+    console.log("Oravexa data ready");
+  } catch (err) {
+    console.error("Data initialization failed:", err);
+    bootState.ready = false;
+  } finally {
+    bootState.seeding = false;
+  }
+}
+
 function boot() {
-  const db = store.load();
-  const count = Object.keys(db.articles).length;
-  const cats = store.listCategories(db);
-  const mainCats = cats.filter(
-    (c) => !["Help", "Meta", "Programming", "Encyclopedia"].includes(c.name)
-  );
-  const needsSeed =
-    count === 0 ||
-    Boolean(db.articles.wikipedia) ||
-    !db.articles.oravexa ||
-    mainCats.some((c) => c.count < 100);
-  if (needsSeed) {
-    // Clear require cache so reseed can run after code updates
-    delete require.cache[require.resolve("./seed")];
-    require("./seed");
-  }
-
-  const latest = store.load();
-  const updated = store.ensureArticleImages(latest);
-  if (updated > 0) {
-    store.save(latest);
-    console.log(`Assigned cover images to ${updated} articles`);
-  }
-
+  // Listen first. On Render's free tier the disk is ephemeral, so every
+  // wake can reseed for a while — if we block listen(), browsers get
+  // x-render-routing: no-server → plain "Not Found".
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Oravexa running at http://0.0.0.0:${PORT}`);
+    setImmediate(initializeData);
   });
 }
 
