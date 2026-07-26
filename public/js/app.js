@@ -538,20 +538,26 @@ function articleListHtml(articles) {
     return `<div class="empty-state">${escapeHtml(t("noArticles"))}</div>`;
   }
   return `
-    <ul class="article-list">
+    <ul class="article-list article-list-with-images">
       ${articles
         .map((raw) => {
           const a = I18n.localizeArticle(raw);
+          const img = a.image
+            ? `<img class="article-list-thumb" src="${escapeHtml(a.image)}" alt="${escapeHtml(a.imageAlt || a.displayTitle)}" loading="lazy" />`
+            : `<span class="article-list-thumb is-empty" aria-hidden="true"></span>`;
           return `
         <li>
           <a href="#/article/${escapeHtml(a.slug)}">
-            <span class="title">${escapeHtml(a.displayTitle)}</span>
-            <span class="summary">${escapeHtml(a.displaySummary || "")}</span>
-            <span class="meta-row">
-              <span>${escapeHtml(t("updated"))} ${escapeHtml(formatDate(a.updatedAt))}</span>
-              ${(a.displayCategories || [])
-                .map((c) => `<span class="pill">${escapeHtml(c)}</span>`)
-                .join("")}
+            ${img}
+            <span class="article-list-copy">
+              <span class="title">${escapeHtml(a.displayTitle)}</span>
+              <span class="summary">${escapeHtml(a.displaySummary || "")}</span>
+              <span class="meta-row">
+                <span>${escapeHtml(t("updated"))} ${escapeHtml(formatDate(a.updatedAt))}</span>
+                ${(a.displayCategories || [])
+                  .map((c) => `<span class="pill">${escapeHtml(c)}</span>`)
+                  .join("")}
+              </span>
             </span>
           </a>
         </li>`;
@@ -680,6 +686,13 @@ async function renderArticle(slug) {
       </div>
       <div class="article-layout">
         <article>
+          ${
+            article.image
+              ? `<figure class="article-cover">
+                  <img src="${escapeHtml(article.image)}" alt="${escapeHtml(article.imageAlt || localized.displayTitle)}" loading="eager" />
+                </figure>`
+              : ""
+          }
           <h1 class="article-title">${escapeHtml(localized.displayTitle)}</h1>
           <div class="article-meta meta-row">
             <span>${escapeHtml(t("by"))} ${escapeHtml(article.author)}</span>

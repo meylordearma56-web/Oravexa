@@ -1,6 +1,12 @@
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
+const {
+  resolveArticleImage,
+  imageAlt,
+  primaryCategory,
+  ensureArticleImages,
+} = require("./article-images");
 
 const DATA_DIR = path.join(__dirname, "..", "data");
 const DB_PATH = path.join(DATA_DIR, "wiki.json");
@@ -97,6 +103,8 @@ function listArticles(db, { limit = 50, offset = 0, sort = "updated" } = {}) {
 }
 
 function publicArticle(article, includeContent = false) {
+  const category = primaryCategory(article.categories || []);
+  const image = resolveArticleImage(article);
   const base = {
     slug: article.slug,
     title: article.title,
@@ -109,6 +117,8 @@ function publicArticle(article, includeContent = false) {
     createdAt: article.createdAt,
     updatedAt: article.updatedAt,
     revisionCount: article.revisionIds.length,
+    image,
+    imageAlt: article.imageAlt || imageAlt(article.title, category),
   };
   if (includeContent) {
     base.content = article.content;
@@ -169,6 +179,8 @@ function createArticle(
     titleEs,
     contentEs,
     categoriesEs,
+    image,
+    imageAlt: imageAltText,
   },
   { deferSave = false } = {}
 ) {
@@ -179,6 +191,14 @@ function createArticle(
   const now = new Date().toISOString();
   const revisionId = makeId();
   const nextContentEs = contentEs || content;
+  const nextCategories = normalizeCategories(categories);
+  const category = primaryCategory(nextCategories);
+  const nextImage = resolveArticleImage({
+    slug,
+    title,
+    categories: nextCategories,
+    image,
+  });
   const article = {
     slug,
     title: title.trim(),
@@ -187,9 +207,11 @@ function createArticle(
     contentEs: nextContentEs,
     summary: extractSummary(content),
     summaryEs: extractSummary(nextContentEs),
-    categories: normalizeCategories(categories),
+    categories: nextCategories,
     categoriesEs: normalizeCategories(categoriesEs || categories),
     author: author.trim() || "Anonymous",
+    image: nextImage,
+    imageAlt: String(imageAltText || imageAlt(title, category)).trim(),
     createdAt: now,
     updatedAt: now,
     revisionIds: [revisionId],
@@ -205,6 +227,8 @@ function createArticle(
     categories: article.categories,
     categoriesEs: article.categoriesEs,
     author: article.author,
+    image: article.image,
+    imageAlt: article.imageAlt,
     summary: "Initial version",
     createdAt: now,
   };
@@ -228,6 +252,8 @@ function updateArticle(
     titleEs,
     contentEs,
     categoriesEs,
+    image,
+    imageAlt: imageAltText,
   }
 ) {
   const article = db.articles[slug];
@@ -245,6 +271,25 @@ function updateArticle(
   const nextCategoriesEs = categoriesEs
     ? normalizeCategories(categoriesEs)
     : article.categoriesEs || nextCategories;
+  const category = primaryCategory(nextCategories);
+  const nextImage =
+    image !== undefined
+      ? resolveArticleImage({
+          slug,
+          title: nextTitle,
+          categories: nextCategories,
+          image,
+        })
+      : resolveArticleImage({
+          slug,
+          title: nextTitle,
+          categories: nextCategories,
+          image: article.image,
+        });
+  const nextImageAlt =
+    imageAltText !== undefined
+      ? String(imageAltText || imageAlt(nextTitle, category)).trim()
+      : article.imageAlt || imageAlt(nextTitle, category);
 
   db.revisions[revisionId] = {
     id: revisionId,
@@ -256,6 +301,8 @@ function updateArticle(
     categories: nextCategories,
     categoriesEs: nextCategoriesEs,
     author: (author || "Anonymous").trim(),
+    image: nextImage,
+    imageAlt: nextImageAlt,
     summary: summary.trim() || "Updated article",
     createdAt: now,
   };
@@ -269,10 +316,12 @@ function updateArticle(
   article.categories = nextCategories;
   article.categoriesEs = nextCategoriesEs;
   article.author = (author || "Anonymous").trim();
+  article.image = nextImage;
+  article.imageAlt = nextImageAlt;
   article.updatedAt = now;
   article.revisionIds.push(revisionId);
 
-  upsertCategories(db, nextCategories, slug);
+  upsertCategories(db, article.categories, slug);
   save(db);
   return publicArticle(article, true);
 }
@@ -326,6 +375,8 @@ function restoreRevision(db, slug, revisionId, author = "Anonymous") {
     contentEs: revision.contentEs,
     categories: revision.categories,
     categoriesEs: revision.categoriesEs,
+    image: revision.image,
+    imageAlt: revision.imageAlt,
     author,
     summary: `Restored revision from ${new Date(revision.createdAt).toLocaleString()}`,
   });
@@ -434,5 +485,6 @@ module.exports = {
   randomArticle,
   recentChanges,
   stats,
+  ensureArticleImages,
   DB_PATH,
 };
