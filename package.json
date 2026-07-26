@@ -1,7 +1,7 @@
 {
-  "name": "wiki-pedia",
+  "name": "oravexa",
   "version": "1.0.0",
-  "description": "A full-featured Wikipedia-style encyclopedia built with JavaScript",
+  "description": "Oravexa — a full-featured encyclopedia built with JavaScript",
   "main": "server/index.js",
   "scripts": {
     "start": "node server/index.js",
@@ -11,7 +11,7 @@
   "engines": {
     "node": ">=18"
   },
-  "keywords": ["wiki", "encyclopedia", "javascript"],
+  "keywords": ["wiki", "encyclopedia", "javascript", "oravexa"],
   "license": "MIT",
   "dependencies": {
     "cors": "^2.8.5",

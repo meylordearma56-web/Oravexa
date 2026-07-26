@@ -6,12 +6,12 @@ const DB_PATH = path.join(__dirname, "..", "data", "wiki.json");
 
 const seedArticles = [
   {
-    title: "WikiPedia",
+    title: "Oravexa",
     categories: ["Help", "Meta"],
     author: "System",
-    content: `# Welcome to WikiPedia
+    content: `# Welcome to Oravexa
 
-**WikiPedia** is a free, collaborative encyclopedia you can read and edit in your browser. Every article is written in Markdown, versioned automatically, and organized by categories.
+**Oravexa** is a free, collaborative encyclopedia you can read and edit in your browser. Every article is written in Markdown, versioned automatically, and organized by categories.
 
 ## What you can do
 
@@ -228,7 +228,7 @@ Jazz shaped film scores, civil rights soundtracks, and global popular music. It 
     author: "System",
     content: `# Markdown
 
-**Markdown** is a lightweight markup language for formatting plain text. WikiPedia articles are written in Markdown so they stay easy to edit and pleasant to read.
+**Markdown** is a lightweight markup language for formatting plain text. Oravexa articles are written in Markdown so they stay easy to edit and pleasant to read.
 
 ## Common syntax
 

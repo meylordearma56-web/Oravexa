@@ -35,17 +35,23 @@ function renderMarkdown(content) {
 }
 
 function wikiLinkify(html, db) {
-  return html.replace(
-    /\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g,
-    (_, target, label) => {
-      const title = target.trim();
-      const text = (label || title).trim();
-      const slug = store.slugify(title);
-      const exists = Boolean(db.articles[slug]);
-      const cls = exists ? "wiki-link" : "wiki-link missing";
-      return `<a href="#/article/${slug}" class="${cls}" data-slug="${slug}">${text}</a>`;
-    }
-  );
+  const parts = String(html).split(/(<pre[\s\S]*?<\/pre>|<code[\s\S]*?<\/code>)/gi);
+  return parts
+    .map((part) => {
+      if (/^<(pre|code)\b/i.test(part)) return part;
+      return part.replace(
+        /\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g,
+        (_, target, label) => {
+          const title = target.trim();
+          const text = (label || title).trim();
+          const slug = store.slugify(title);
+          const exists = Boolean(db.articles[slug]);
+          const cls = exists ? "wiki-link" : "wiki-link missing";
+          return `<a href="#/article/${encodeURIComponent(slug)}" class="${cls}" data-slug="${slug}">${text}</a>`;
+        }
+      );
+    })
+    .join("");
 }
 
 app.use(cors());
@@ -53,7 +59,7 @@ app.use(express.json({ limit: "1mb" }));
 app.use(express.static(path.join(__dirname, "..", "public")));
 
 app.get("/api/health", (_req, res) => {
-  res.json({ ok: true, service: "wiki-pedia" });
+  res.json({ ok: true, service: "oravexa" });
 });
 
 app.get("/api/stats", (_req, res) => {
@@ -211,18 +217,22 @@ app.delete("/api/articles/:slug", (req, res) => {
   }
 });
 
-app.get("*", (_req, res) => {
+app.get(["/", "/index.html"], (_req, res) => {
   res.sendFile(path.join(__dirname, "..", "public", "index.html"));
 });
 
 function boot() {
   const db = store.load();
-  if (Object.keys(db.articles).length === 0) {
+  const needsSeed =
+    Object.keys(db.articles).length === 0 ||
+    Boolean(db.articles.wikipedia) ||
+    !db.articles.oravexa;
+  if (needsSeed) {
     require("./seed");
   }
 
   app.listen(PORT, () => {
-    console.log(`WikiPedia running at http://localhost:${PORT}`);
+    console.log(`Oravexa running at http://localhost:${PORT}`);
   });
 }
 

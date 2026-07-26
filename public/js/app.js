@@ -15,6 +15,7 @@ function getTheme() {
 }
 
 function syncThemeToggle() {
+  if (!themeToggle) return;
   const theme = getTheme();
   const next = theme === "dark" ? "light" : "dark";
   themeToggle.setAttribute(
@@ -28,20 +29,27 @@ function syncThemeToggle() {
 function setTheme(theme) {
   const next = theme === "dark" ? "dark" : "light";
   document.documentElement.setAttribute("data-theme", next);
-  localStorage.setItem("wikiTheme", next);
+  localStorage.setItem("oravexaTheme", next);
+  localStorage.removeItem("wikiTheme");
   syncThemeToggle();
 }
 
-themeToggle.addEventListener("click", () => {
-  setTheme(getTheme() === "dark" ? "light" : "dark");
-});
-
-syncThemeToggle();
+if (themeToggle) {
+  themeToggle.addEventListener("click", () => {
+    setTheme(getTheme() === "dark" ? "light" : "dark");
+  });
+  syncThemeToggle();
+}
 
 async function api(path, options = {}) {
+  const { headers: extraHeaders, ...rest } = options;
   const res = await fetch(path, {
-    headers: { "Content-Type": "application/json", ...(options.headers || {}) },
-    ...options,
+    ...rest,
+    headers: {
+      Accept: "application/json",
+      ...(rest.body ? { "Content-Type": "application/json" } : {}),
+      ...(extraHeaders || {}),
+    },
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
@@ -79,7 +87,7 @@ function parseHash() {
 }
 
 function setTitle(title) {
-  document.title = title ? `${title} — WikiPedia` : "WikiPedia — The Free Encyclopedia";
+  document.title = title ? `${title} — Oravexa` : "Oravexa — The Free Encyclopedia";
 }
 
 function closeMobileNav() {
@@ -165,11 +173,11 @@ async function renderHome() {
     <section class="hero" aria-label="Welcome">
       <div class="hero-media" aria-hidden="true"></div>
       <div class="hero-content">
-        <p class="hero-brand">WikiPedia</p>
+        <p class="hero-brand">Oravexa</p>
         <h1>Knowledge, written together.</h1>
         <p>A free encyclopedia you can read, search, and expand — article by article.</p>
         <div class="hero-actions">
-          <a class="btn btn-primary" href="#/article/wikipedia">Start reading</a>
+          <a class="btn btn-primary" href="#/article/oravexa">Start reading</a>
           <a class="btn btn-secondary" href="#/create">Write an article</a>
         </div>
       </div>
@@ -525,7 +533,7 @@ async function renderRecent() {
   const changes = await api("/api/recent?limit=40");
   app.innerHTML = `
     <h1 class="page-title">Recent changes</h1>
-    <p class="page-lead">The newest edits across WikiPedia.</p>
+    <p class="page-lead">The newest edits across Oravexa.</p>
     <ul class="revision-list">
       ${changes
         .map(

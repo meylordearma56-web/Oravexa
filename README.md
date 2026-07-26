@@ -1,6 +1,6 @@
-# WikiPedia
+# Oravexa
 
-A full-featured Wikipedia-style encyclopedia built with **JavaScript** (Node.js + Express + vanilla frontend).
+A full-featured encyclopedia built with **JavaScript** (Node.js + Express + vanilla frontend).
 
 ## Features
 
@@ -10,7 +10,8 @@ A full-featured Wikipedia-style encyclopedia built with **JavaScript** (Node.js 
 - Wiki links with `[[Article Title]]` syntax
 - Automatic revision history and restore
 - Categories, recent changes, random article
-- Responsive UI with a distinctive reading-first design
+- Black / white theme toggle
+- Responsive UI with a reading-first design
 
 ## Quick start
 
@@ -27,7 +28,7 @@ On first launch the server seeds sample articles automatically.
 
 | Command | Description |
 | --- | --- |
-| `npm start` | Run the wiki server |
+| `npm start` | Run the Oravexa server |
 | `npm run dev` | Run with Node `--watch` reload |
 | `npm run seed` | Reset the database and reseed sample articles |
 
