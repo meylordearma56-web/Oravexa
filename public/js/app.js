@@ -151,7 +151,7 @@ function applyChrome() {
       <p><strong>Oravexa</strong> — ${escapeHtml(t("footerTagline"))}</p>
       <p class="muted">${escapeHtml(t("footerMeta"))}</p>
       <p class="footer-phone">
-        <span class="footer-phone-label">iOS / Android</span>
+        <span class="footer-phone-label">iOS / Android / PC</span>
         <a class="footer-phone-link" href="${phoneUrl}" target="_blank" rel="noopener noreferrer">${phoneUrl}</a>
       </p>
     `;
