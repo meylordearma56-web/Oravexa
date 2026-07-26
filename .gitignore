@@ -8,3 +8,5 @@ data/auth.json.tmp
 .DS_Store
 *.log
 .env
+
+data/public-url.txt
