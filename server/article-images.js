@@ -71,16 +71,16 @@ const CATEGORY_IMAGES = {
     unsplash("photo-1505751172876-fa1923c5c528"),
   ],
   History: [
-    unsplash("photo-1461360228754-6e81c08f1555"),
+    unsplash("photo-1566127444979-b3d2b654e3d7"),
     unsplash("photo-1553913861-c0fddf2619ee"),
     unsplash("photo-1548013146-72479768bada"),
-    unsplash("photo-1529156069898-49953e39b3ac"),
+    unsplash("photo-1554907984-15263bfd63bd"),
   ],
   Literature: [
-    unsplash("photo-1481627834876-b7833e8f5040"),
+    unsplash("photo-1497633762265-9d179a990aa6"),
     unsplash("photo-1512820790803-83ca734da794"),
     unsplash("photo-1495446815901-a7297e633e8d"),
-    unsplash("photo-1457369804613-52c61a468e7d"),
+    unsplash("photo-1521587760476-6c12a4b040da"),
   ],
   Mathematics: [
     unsplash("photo-1635070041078-e363dbe005cb"),
@@ -95,10 +95,10 @@ const CATEGORY_IMAGES = {
     unsplash("photo-1470225620780-dba8ba36b745"),
   ],
   Philosophy: [
-    unsplash("photo-14565130808af8-7fd43e8e23a0"),
-    unsplash("photo-1507003211169-0a1dd7228f2d"),
-    unsplash("photo-1481627834876-b7833e8f5040"),
     unsplash("photo-1434030216411-0b793f4b4173"),
+    unsplash("photo-1507003211169-0a1dd7228f2d"),
+    unsplash("photo-1519682337058-a94d519337bc"),
+    unsplash("photo-1507842217343-583bb7270b66"),
   ],
   Politics: [
     unsplash("photo-1529107386315-e1a2ed48a620"),
@@ -107,8 +107,8 @@ const CATEGORY_IMAGES = {
     unsplash("photo-1555848962-6e79363ec58f"),
   ],
   Science: [
-    unsplash("photo-1507413245164-6160d80970ea"),
     unsplash("photo-1532094349884-543bc11b234d"),
+    unsplash("photo-1581093588401-fbb62a02f120"),
     unsplash("photo-1451187580459-43490279c0fa"),
     unsplash("photo-1582719471384-894fbb16e074"),
   ],
@@ -116,35 +116,35 @@ const CATEGORY_IMAGES = {
     unsplash("photo-1529156069898-49953e39b3ac"),
     unsplash("photo-1517048676732-d65bc937f952"),
     unsplash("photo-1469571486292-0ba58a3f068b"),
-    unsplash("photo-1511632765486-a01980e36a1d"),
+    unsplash("photo-1491438590914-bc09fcaaf77a"),
   ],
   Sports: [
-    unsplash("photo-1461896836934-ffe607ba6851"),
+    unsplash("photo-1546519638-68e109498ffc"),
     unsplash("photo-1579952363873-27f3bade9f55"),
-    unsplash("photo-1517649763962-0cfe39ed9bd8"),
+    unsplash("photo-1518611012118-696072aa579a"),
     unsplash("photo-1552674605-db6ffd4facb5"),
   ],
   Help: [
-    unsplash("photo-14565130808af8-7fd43e8e23a0"),
-    unsplash("photo-1481627834876-b7833e8f5040"),
     unsplash("photo-1434030216411-0b793f4b4173"),
+    unsplash("photo-1497633762265-9d179a990aa6"),
+    unsplash("photo-1519682337058-a94d519337bc"),
   ],
   Meta: [
     unsplash("photo-1451187580459-43490279c0fa"),
-    unsplash("photo-1481627834876-b7833e8f5040"),
+    unsplash("photo-1507842217343-583bb7270b66"),
   ],
   Encyclopedia: [
-    unsplash("photo-1481627834876-b7833e8f5040"),
-    unsplash("photo-1524995997944-a1ba2d63d43e"),
+    unsplash("photo-1497633762265-9d179a990aa6"),
+    unsplash("photo-1521587760476-6c12a4b040da"),
     unsplash("photo-1495446815901-a7297e633e8d"),
   ],
 };
 
 const DEFAULT_IMAGES = [
-  unsplash("photo-1481627834876-b7833e8f5040"),
-  unsplash("photo-14565130808af8-7fd43e8e23a0"),
-  unsplash("photo-1524995997944-a1ba2d63d43e"),
+  unsplash("photo-1497633762265-9d179a990aa6"),
   unsplash("photo-1507842217343-583bb7270b66"),
+  unsplash("photo-1521587760476-6c12a4b040da"),
+  unsplash("photo-1519682337058-a94d519337bc"),
 ];
 
 function hashString(input) {
@@ -166,8 +166,14 @@ function primaryCategory(categories = []) {
   return categories.find((c) => CATEGORY_IMAGES[c]) || categories[0] || "";
 }
 
-function resolveArticleImage({ slug, title, categories = [], image } = {}) {
-  if (image && String(image).trim()) {
+function resolveArticleImage({
+  slug,
+  title,
+  categories = [],
+  image,
+  preferStored = true,
+} = {}) {
+  if (preferStored && image && String(image).trim()) {
     return String(image).trim();
   }
   const category = primaryCategory(categories);
@@ -195,8 +201,15 @@ function attachImageFields(article) {
 function ensureArticleImages(db) {
   let changed = 0;
   for (const article of Object.values(db.articles || {})) {
-    const next = resolveArticleImage(article);
     const category = primaryCategory(article.categories || []);
+    // Always recompute from the current category pools so broken URLs
+    // get replaced when the catalog is updated.
+    const next = resolveArticleImage({
+      slug: article.slug,
+      title: article.title,
+      categories: article.categories,
+      preferStored: false,
+    });
     const alt = imageAlt(article.title, category);
     if (article.image !== next || article.imageAlt !== alt) {
       article.image = next;
