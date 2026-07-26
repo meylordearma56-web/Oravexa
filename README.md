@@ -25,7 +25,7 @@ npm start
 
 Open [http://localhost:3000](http://localhost:3000).
 
-Open on iOS / Android / PC: [https://tired-bags-dig.loca.lt](https://tired-bags-dig.loca.lt)
+Open on iOS / Android / PC: [https://communist-initiatives-criteria-myth.trycloudflare.com](https://communist-initiatives-criteria-myth.trycloudflare.com)
 
 On first launch the server seeds sample articles automatically.
 

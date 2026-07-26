@@ -146,7 +146,7 @@ function applyChrome() {
 
   const footer = document.querySelector(".footer-inner");
   if (footer) {
-    const phoneUrl = "https://tired-bags-dig.loca.lt";
+    const phoneUrl = "https://communist-initiatives-criteria-myth.trycloudflare.com";
     footer.innerHTML = `
       <p><strong>Oravexa</strong> — ${escapeHtml(t("footerTagline"))}</p>
       <p class="muted">${escapeHtml(t("footerMeta"))}</p>
