@@ -74,6 +74,19 @@ app.get("/api/health", (_req, res) => {
   res.json({ ok: true, service: "oravexa" });
 });
 
+app.get("/api/public-url", (_req, res) => {
+  const fs = require("fs");
+  const publicUrlPath = path.join(__dirname, "..", "data", "public-url.txt");
+  let url = process.env.ORAVEXA_PUBLIC_URL || "";
+  if (!url && fs.existsSync(publicUrlPath)) {
+    url = fs.readFileSync(publicUrlPath, "utf8").trim();
+  }
+  res.json({
+    url: url || "",
+    local: `http://localhost:${PORT}/`,
+  });
+});
+
 app.post("/api/auth/register", (req, res) => {
   try {
     const { username, password, displayName } = req.body || {};

@@ -5,6 +5,7 @@ data/users.json
 data/users.json.tmp
 data/auth.json
 data/auth.json.tmp
+data/public-url.txt
 .DS_Store
 *.log
 .env

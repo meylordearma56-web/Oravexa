@@ -100,6 +100,17 @@ function applyAuthChrome() {
   if (userChipBadge) userChipBadge.textContent = t("ownerBadge");
 }
 
+let publicPhoneUrl = "";
+
+async function loadPublicUrl() {
+  try {
+    const data = await api("/api/public-url");
+    publicPhoneUrl = data.url || "";
+  } catch {
+    publicPhoneUrl = "";
+  }
+}
+
 function applyChrome() {
   const lang = I18n.getLang();
   document.documentElement.setAttribute("lang", lang);
@@ -130,9 +141,17 @@ function applyChrome() {
 
   const footer = document.querySelector(".footer-inner");
   if (footer) {
+    const phoneBlock = publicPhoneUrl
+      ? `<p class="footer-phone">
+          <span class="footer-phone-label">${escapeHtml(t("footerPhone"))}</span>
+          <span class="muted">${escapeHtml(t("footerPhoneHint"))}</span>
+          <a class="footer-phone-link" href="${escapeHtml(publicPhoneUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(publicPhoneUrl)}</a>
+        </p>`
+      : "";
     footer.innerHTML = `
       <p><strong>Oravexa</strong> — ${escapeHtml(t("footerTagline"))}</p>
       <p class="muted">${escapeHtml(t("footerMeta"))}</p>
+      ${phoneBlock}
     `;
   }
 
@@ -192,7 +211,7 @@ function showAuthScreen() {
   setAuthTab("login");
 }
 
-function enterApp() {
+async function enterApp() {
   document.body.classList.remove("auth-locked");
   document.body.classList.add("is-authenticated");
   if (authScreen) {
@@ -204,6 +223,7 @@ function enterApp() {
     appShell.setAttribute("aria-hidden", "false");
   }
   appReady = true;
+  await loadPublicUrl();
   applyChrome();
   if (!location.hash) {
     location.hash = "#/";
