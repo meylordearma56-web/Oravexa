@@ -267,6 +267,32 @@ a:hover {
   gap: 0.75rem;
 }
 
+.lang-toggle {
+  min-height: 2.35rem;
+  padding: 0 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform 160ms ease, background 180ms ease, border-color 180ms ease;
+}
+
+.lang-toggle:hover {
+  transform: translateY(-1px);
+  border-color: var(--canopy);
+}
+
+.lang-toggle:focus-visible {
+  outline: 2px solid rgba(31, 107, 82, 0.45);
+  outline-offset: 2px;
+}
+
 .theme-toggle {
   width: 2.35rem;
   height: 2.35rem;

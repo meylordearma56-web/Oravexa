@@ -54,6 +54,17 @@ function wikiLinkify(html, db) {
     .join("");
 }
 
+function withHtml(article, db) {
+  return {
+    ...article,
+    html: wikiLinkify(renderMarkdown(article.content), db),
+    htmlEs: wikiLinkify(
+      renderMarkdown(article.contentEs || article.content),
+      db
+    ),
+  };
+}
+
 app.use(cors());
 app.use(express.json({ limit: "1mb" }));
 app.use(express.static(path.join(__dirname, "..", "public")));
@@ -69,7 +80,7 @@ app.get("/api/stats", (_req, res) => {
 
 app.get("/api/articles", (req, res) => {
   const db = store.load();
-  const limit = Math.min(parseInt(req.query.limit, 10) || 50, 200);
+  const limit = Math.min(parseInt(req.query.limit, 10) || 50, 5000);
   const offset = parseInt(req.query.offset, 10) || 0;
   const sort = req.query.sort === "title" ? "title" : "updated";
   res.json(store.listArticles(db, { limit, offset, sort }));
@@ -79,10 +90,7 @@ app.get("/api/articles/random", (_req, res) => {
   const db = store.load();
   const article = store.randomArticle(db);
   if (!article) return res.status(404).json({ error: "No articles yet" });
-  res.json({
-    ...article,
-    html: wikiLinkify(renderMarkdown(article.content), db),
-  });
+  res.json(withHtml(article, db));
 });
 
 app.get("/api/search", (req, res) => {
@@ -114,10 +122,7 @@ app.get("/api/articles/:slug", (req, res) => {
   const db = store.load();
   const article = store.getArticle(db, req.params.slug);
   if (!article) return res.status(404).json({ error: "Article not found" });
-  res.json({
-    ...article,
-    html: wikiLinkify(renderMarkdown(article.content), db),
-  });
+  res.json(withHtml(article, db));
 });
 
 app.get("/api/articles/:slug/revisions", (req, res) => {
@@ -134,13 +139,25 @@ app.get("/api/articles/:slug/revisions/:id", (req, res) => {
   res.json({
     ...revision,
     html: wikiLinkify(renderMarkdown(revision.content), db),
+    htmlEs: wikiLinkify(
+      renderMarkdown(revision.contentEs || revision.content),
+      db
+    ),
   });
 });
 
 app.post("/api/articles", (req, res) => {
   try {
     const db = store.load();
-    const { title, content, categories, author } = req.body || {};
+    const {
+      title,
+      content,
+      categories,
+      author,
+      titleEs,
+      contentEs,
+      categoriesEs,
+    } = req.body || {};
     if (!title || !String(title).trim()) {
       return res.status(400).json({ error: "Title is required" });
     }
@@ -152,11 +169,11 @@ app.post("/api/articles", (req, res) => {
       content,
       categories,
       author,
+      titleEs,
+      contentEs,
+      categoriesEs,
     });
-    res.status(201).json({
-      ...article,
-      html: wikiLinkify(renderMarkdown(article.content), db),
-    });
+    res.status(201).json(withHtml(article, db));
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
@@ -165,7 +182,16 @@ app.post("/api/articles", (req, res) => {
 app.put("/api/articles/:slug", (req, res) => {
   try {
     const db = store.load();
-    const { title, content, categories, author, summary } = req.body || {};
+    const {
+      title,
+      content,
+      categories,
+      author,
+      summary,
+      titleEs,
+      contentEs,
+      categoriesEs,
+    } = req.body || {};
     if (content !== undefined && !String(content).trim()) {
       return res.status(400).json({ error: "Content cannot be empty" });
     }
@@ -175,11 +201,11 @@ app.put("/api/articles/:slug", (req, res) => {
       categories,
       author,
       summary,
+      titleEs,
+      contentEs,
+      categoriesEs,
     });
-    res.json({
-      ...article,
-      html: wikiLinkify(renderMarkdown(article.content), db),
-    });
+    res.json(withHtml(article, db));
   } catch (err) {
     const status = err.message === "Article not found" ? 404 : 400;
     res.status(status).json({ error: err.message });
@@ -196,10 +222,7 @@ app.post("/api/articles/:slug/revisions/:id/restore", (req, res) => {
       req.params.id,
       author
     );
-    res.json({
-      ...article,
-      html: wikiLinkify(renderMarkdown(article.content), db),
-    });
+    res.json(withHtml(article, db));
   } catch (err) {
     const status = err.message.includes("not found") ? 404 : 400;
     res.status(status).json({ error: err.message });
@@ -223,11 +246,19 @@ app.get(["/", "/index.html"], (_req, res) => {
 
 function boot() {
   const db = store.load();
+  const count = Object.keys(db.articles).length;
+  const cats = store.listCategories(db);
+  const mainCats = cats.filter(
+    (c) => !["Help", "Meta", "Programming", "Encyclopedia"].includes(c.name)
+  );
   const needsSeed =
-    Object.keys(db.articles).length === 0 ||
+    count === 0 ||
     Boolean(db.articles.wikipedia) ||
-    !db.articles.oravexa;
+    !db.articles.oravexa ||
+    mainCats.some((c) => c.count < 100);
   if (needsSeed) {
+    // Clear require cache so reseed can run after code updates
+    delete require.cache[require.resolve("./seed")];
     require("./seed");
   }
 

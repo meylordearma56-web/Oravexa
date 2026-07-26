@@ -36,7 +36,7 @@ function load() {
 function save(db) {
   ensureDataDir();
   const tmp = `${DB_PATH}.tmp`;
-  fs.writeFileSync(tmp, JSON.stringify(db, null, 2));
+  fs.writeFileSync(tmp, JSON.stringify(db));
   fs.renameSync(tmp, DB_PATH);
 }
 
@@ -100,8 +100,11 @@ function publicArticle(article, includeContent = false) {
   const base = {
     slug: article.slug,
     title: article.title,
+    titleEs: article.titleEs || article.title,
     summary: article.summary,
+    summaryEs: article.summaryEs || article.summary,
     categories: article.categories,
+    categoriesEs: article.categoriesEs || article.categories,
     author: article.author,
     createdAt: article.createdAt,
     updatedAt: article.updatedAt,
@@ -109,6 +112,7 @@ function publicArticle(article, includeContent = false) {
   };
   if (includeContent) {
     base.content = article.content;
+    base.contentEs = article.contentEs || article.content;
     base.revisionIds = article.revisionIds;
   }
   return base;
@@ -127,18 +131,25 @@ function searchArticles(db, query, limit = 20) {
   return Object.values(db.articles)
     .map((article) => {
       const title = article.title.toLowerCase();
+      const titleEs = (article.titleEs || "").toLowerCase();
       const content = article.content.toLowerCase();
-      const cats = article.categories.join(" ").toLowerCase();
+      const contentEs = (article.contentEs || "").toLowerCase();
+      const cats = [
+        ...article.categories,
+        ...(article.categoriesEs || []),
+      ]
+        .join(" ")
+        .toLowerCase();
       let score = 0;
-      if (title === q) score += 100;
-      else if (title.startsWith(q)) score += 60;
-      else if (title.includes(q)) score += 40;
+      if (title === q || titleEs === q) score += 100;
+      else if (title.startsWith(q) || titleEs.startsWith(q)) score += 60;
+      else if (title.includes(q) || titleEs.includes(q)) score += 40;
       if (cats.includes(q)) score += 15;
-      if (content.includes(q)) score += 10;
+      if (content.includes(q) || contentEs.includes(q)) score += 10;
       const words = q.split(/\s+/);
       for (const w of words) {
-        if (title.includes(w)) score += 5;
-        if (content.includes(w)) score += 2;
+        if (title.includes(w) || titleEs.includes(w)) score += 5;
+        if (content.includes(w) || contentEs.includes(w)) score += 2;
       }
       return { article, score };
     })
@@ -148,19 +159,36 @@ function searchArticles(db, query, limit = 20) {
     .map((r) => publicArticle(r.article));
 }
 
-function createArticle(db, { title, content, categories = [], author = "Anonymous" }) {
+function createArticle(
+  db,
+  {
+    title,
+    content,
+    categories = [],
+    author = "Anonymous",
+    titleEs,
+    contentEs,
+    categoriesEs,
+  },
+  { deferSave = false } = {}
+) {
   const slug = slugify(title);
   if (!slug) throw new Error("Title produces an empty slug");
   if (db.articles[slug]) throw new Error("An article with this title already exists");
 
   const now = new Date().toISOString();
   const revisionId = makeId();
+  const nextContentEs = contentEs || content;
   const article = {
     slug,
     title: title.trim(),
+    titleEs: (titleEs || title).trim(),
     content,
+    contentEs: nextContentEs,
     summary: extractSummary(content),
+    summaryEs: extractSummary(nextContentEs),
     categories: normalizeCategories(categories),
+    categoriesEs: normalizeCategories(categoriesEs || categories),
     author: author.trim() || "Anonymous",
     createdAt: now,
     updatedAt: now,
@@ -171,8 +199,11 @@ function createArticle(db, { title, content, categories = [], author = "Anonymou
     id: revisionId,
     slug,
     title: article.title,
+    titleEs: article.titleEs,
     content,
+    contentEs: article.contentEs,
     categories: article.categories,
+    categoriesEs: article.categoriesEs,
     author: article.author,
     summary: "Initial version",
     createdAt: now,
@@ -181,14 +212,23 @@ function createArticle(db, { title, content, categories = [], author = "Anonymou
   db.articles[slug] = article;
   upsertCategories(db, article.categories, slug);
   db.meta.articleCount = Object.keys(db.articles).length;
-  save(db);
+  if (!deferSave) save(db);
   return publicArticle(article, true);
 }
 
 function updateArticle(
   db,
   slug,
-  { title, content, categories, author = "Anonymous", summary = "Updated article" }
+  {
+    title,
+    content,
+    categories,
+    author = "Anonymous",
+    summary = "Updated article",
+    titleEs,
+    contentEs,
+    categoriesEs,
+  }
 ) {
   const article = db.articles[slug];
   if (!article) throw new Error("Article not found");
@@ -196,26 +236,38 @@ function updateArticle(
   const now = new Date().toISOString();
   const revisionId = makeId();
   const nextTitle = (title ?? article.title).trim();
+  const nextTitleEs = (titleEs ?? article.titleEs ?? nextTitle).trim();
   const nextContent = content ?? article.content;
+  const nextContentEs = contentEs ?? article.contentEs ?? nextContent;
   const nextCategories = categories
     ? normalizeCategories(categories)
     : article.categories;
+  const nextCategoriesEs = categoriesEs
+    ? normalizeCategories(categoriesEs)
+    : article.categoriesEs || nextCategories;
 
   db.revisions[revisionId] = {
     id: revisionId,
     slug,
     title: nextTitle,
+    titleEs: nextTitleEs,
     content: nextContent,
+    contentEs: nextContentEs,
     categories: nextCategories,
+    categoriesEs: nextCategoriesEs,
     author: (author || "Anonymous").trim(),
     summary: summary.trim() || "Updated article",
     createdAt: now,
   };
 
   article.title = nextTitle;
+  article.titleEs = nextTitleEs;
   article.content = nextContent;
+  article.contentEs = nextContentEs;
   article.summary = extractSummary(nextContent);
+  article.summaryEs = extractSummary(nextContentEs);
   article.categories = nextCategories;
+  article.categoriesEs = nextCategoriesEs;
   article.author = (author || "Anonymous").trim();
   article.updatedAt = now;
   article.revisionIds.push(revisionId);
@@ -269,8 +321,11 @@ function restoreRevision(db, slug, revisionId, author = "Anonymous") {
   if (!revision) throw new Error("Revision not found");
   return updateArticle(db, slug, {
     title: revision.title,
+    titleEs: revision.titleEs,
     content: revision.content,
+    contentEs: revision.contentEs,
     categories: revision.categories,
+    categoriesEs: revision.categoriesEs,
     author,
     summary: `Restored revision from ${new Date(revision.createdAt).toLocaleString()}`,
   });
@@ -287,21 +342,36 @@ function listCategories(db) {
 }
 
 function getCategory(db, name) {
-  const key = name.toLowerCase().replace(/-/g, " ");
-  const exact = db.categories[key] || db.categories[name.toLowerCase()];
+  const raw = decodeURIComponent(String(name || "")).toLowerCase();
+  const key = raw.replace(/-/g, " ");
+  let exact = db.categories[key] || db.categories[raw];
+
   if (!exact) {
-    const found = Object.values(db.categories).find(
-      (c) => c.name.toLowerCase().replace(/\s+/g, "-") === name.toLowerCase()
+    exact = Object.values(db.categories).find(
+      (c) => c.name.toLowerCase().replace(/\s+/g, "-") === raw
     );
-    if (!found) return null;
-    return {
-      name: found.name,
-      articles: found.articles.map((s) => publicArticle(db.articles[s])).filter(Boolean),
-    };
   }
+
+  // Allow Spanish category names/slugs by matching categoriesEs on articles
+  if (!exact) {
+    for (const article of Object.values(db.articles)) {
+      const idx = (article.categoriesEs || []).findIndex((c) => {
+        const n = String(c).toLowerCase();
+        return n === key || n.replace(/\s+/g, "-") === raw;
+      });
+      if (idx >= 0 && article.categories[idx]) {
+        exact = db.categories[article.categories[idx].toLowerCase()];
+        if (exact) break;
+      }
+    }
+  }
+
+  if (!exact) return null;
   return {
     name: exact.name,
-    articles: exact.articles.map((s) => publicArticle(db.articles[s])).filter(Boolean),
+    articles: exact.articles
+      .map((s) => publicArticle(db.articles[s]))
+      .filter(Boolean),
   };
 }
 
@@ -320,6 +390,7 @@ function recentChanges(db, limit = 20) {
       id: r.id,
       slug: r.slug,
       title: r.title,
+      titleEs: r.titleEs || r.title,
       author: r.author,
       summary: r.summary,
       createdAt: r.createdAt,

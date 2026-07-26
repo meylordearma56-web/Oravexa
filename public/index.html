@@ -23,6 +23,8 @@
           localStorage.getItem("wikiTheme");
         const theme = saved === "dark" || saved === "light" ? saved : "light";
         document.documentElement.setAttribute("data-theme", theme);
+        const lang = localStorage.getItem("oravexaLang") === "es" ? "es" : "en";
+        document.documentElement.setAttribute("lang", lang);
       })();
     </script>
   </head>
@@ -77,6 +79,16 @@
         <div class="header-actions">
           <button
             type="button"
+            class="lang-toggle"
+            id="lang-toggle"
+            aria-label="Switch language to Spanish"
+            title="Switch language to Spanish"
+          >
+            Español
+          </button>
+
+          <button
+            type="button"
             class="theme-toggle"
             id="theme-toggle"
             aria-label="Switch to black theme"
@@ -109,6 +121,7 @@
       </div>
     </footer>
 
+    <script src="/js/i18n.js" defer></script>
     <script src="/js/app.js" defer></script>
   </body>
 </html>
