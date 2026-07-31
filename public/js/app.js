@@ -296,6 +296,7 @@ async function renderPresenceChart(data) {
   const total = Math.max(data.onlineCount || 0, 1);
   const ownersPct = Math.round(((data.owners || 0) / total) * 100);
   const usersPct = Math.round(((data.users || 0) / total) * 100);
+  const totalUsers = data.totalUsers || 0;
   const summaryKey =
     (data.users || 0) === 1 ? "presenceSummaryOne" : "presenceSummary";
 
@@ -303,10 +304,18 @@ async function renderPresenceChart(data) {
     count: data.onlineCount || 0,
     owners: data.owners || 0,
     users: data.users || 0,
+    totalUsers,
   });
 
   presenceChart.innerHTML = `
     <div class="presence-bars" role="img" aria-label="${escapeHtml(t("presenceTitle"))}">
+      <div class="presence-bar-row">
+        <span class="presence-bar-label">${escapeHtml(t("presenceAccountsCreated"))}</span>
+        <div class="presence-bar-track">
+          <div class="presence-bar-fill is-user" style="width:100%"></div>
+        </div>
+        <span class="presence-bar-count">${totalUsers}</span>
+      </div>
       <div class="presence-bar-row">
         <span class="presence-bar-label">${escapeHtml(t("presenceOwners"))}</span>
         <div class="presence-bar-track">

@@ -72,6 +72,7 @@ On first launch the server seeds sample articles automatically.
 | `POST` | `/api/auth/login` | Sign in + start session |
 | `POST` | `/api/auth/logout` | End session |
 | `GET` | `/api/auth/me` | Current user (auto-login check) |
+| `GET` | `/api/owner/presence` | Owner only: who's online + total accounts created |
 
 ## Project layout
 
