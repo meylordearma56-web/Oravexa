@@ -118,8 +118,11 @@ const STRINGS = {
     presenceClose: "Close",
     presenceCloseLabel: "Close who's online",
     presenceEmpty: "No one else is online right now.",
-    presenceSummary: "{count} online · {owners} owner · {users} users",
-    presenceSummaryOne: "{count} online · {owners} owner · {users} user",
+    presenceSummary:
+      "{count} online · {owners} owner · {users} users · {totalUsers} accounts created",
+    presenceSummaryOne:
+      "{count} online · {owners} owner · {users} user · {totalUsers} accounts created",
+    presenceAccountsCreated: "Accounts created",
     presenceOwners: "Owners",
     presenceUsers: "Users",
     presenceLoading: "Loading who's online…",
@@ -248,8 +251,11 @@ const STRINGS = {
     presenceClose: "Cerrar",
     presenceCloseLabel: "Cerrar quién está en línea",
     presenceEmpty: "Nadie más está en línea ahora.",
-    presenceSummary: "{count} en línea · {owners} propietario · {users} usuarios",
-    presenceSummaryOne: "{count} en línea · {owners} propietario · {users} usuario",
+    presenceSummary:
+      "{count} en línea · {owners} propietario · {users} usuarios · {totalUsers} cuentas creadas",
+    presenceSummaryOne:
+      "{count} en línea · {owners} propietario · {users} usuario · {totalUsers} cuentas creadas",
+    presenceAccountsCreated: "Cuentas creadas",
     presenceOwners: "Propietarios",
     presenceUsers: "Usuarios",
     presenceLoading: "Cargando quién está en línea…",

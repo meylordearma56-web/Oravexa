@@ -296,10 +296,17 @@ function getOnlinePresence(token) {
   const owners = online.filter((u) => u.role === "owner").length;
   const users = online.length - owners;
 
+  const allAccounts = Object.values(data.users);
+  const totalOwners = allAccounts.filter((u) => u.role === "owner").length;
+  const totalUsers = allAccounts.length - totalOwners;
+
   return {
     onlineCount: online.length,
     owners,
     users,
+    totalAccounts: allAccounts.length,
+    totalOwners,
+    totalUsers,
     checkedAt: new Date().toISOString(),
     onlineMs: ONLINE_MS,
     online,
